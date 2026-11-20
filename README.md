@@ -16,9 +16,15 @@ Operations analytics on 2.49 million real City of Calgary 311 service requests (
 
 All data is real. Figures are from the development snapshot of 2026-11-19; the final snapshot is 2026-12-01. Every number traces to a query in [`docs/evidence_log.md`](docs/evidence_log.md).
 
-[![Calgary 311 Service Performance dashboard on Tableau Public](https://public.tableau.com/static/images/ca/calgary_311/Calgary311ServicePerformance/1.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance)
+**Priorities**: which communities and request types to send crews to first.
 
-*Click the image to open the interactive dashboard on Tableau Public (filters and tooltips).*
+[![Priorities dashboard: open requests by community and request type](docs/img/dashboard-priorities.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311)
+
+**Monthly situation**: stock of old work, benchmark share, slipping services, seasonality and snow.
+
+[![Monthly situation dashboard](docs/img/dashboard-monthly.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311)
+
+*Screenshots from Tableau Public Desktop (French locale). Click an image to open the interactive workbook on Tableau Public (filters and tooltips).*
 
 > The final `2026-12-01` snapshot is next; figures will move slightly.
 
