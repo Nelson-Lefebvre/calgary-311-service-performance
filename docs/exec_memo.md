@@ -11,7 +11,7 @@ New 311 requests close as fast as they did in 2022-2024 for every field service 
 
 1. **34,661** field requests open 90+ days at the end of October 2026: +17% on October 2022, +32% on October 2025.
 2. **77%** of those belong to Roads & Mobility, mostly scheduled repairs (curb and gutter, signs, back lanes).
-3. **Fire** is the only field service that slipped: 81% of requests closed within benchmark in 2022-2024, 73% since 2025.
+3. **Fire** is the only field service that slipped: 82% of requests closed within benchmark in 2022-2024, 75% from 2025 to September 2026.
 
 The benchmark is each service's own 80th percentile time to close in 2022-2024, because the City publishes no per-service targets.
 

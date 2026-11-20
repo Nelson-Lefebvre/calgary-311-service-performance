@@ -8,16 +8,19 @@ By construction the benchmark period sits near 80%. The assessed period (2025 to
 
 | Category | Type | 2022-2024 | 2025-Sep 2026 | Median days (then, now) |
 |---|---|---|---|---|
-| Fire | field | 81.3% | **72.7%** | 5, 6 |
-| Roads & Mobility | field | 78.2% | 78.4% | 1, 1 |
-| Water | field | 83.9% | 83.4% | 2, 2 |
-| Bylaw & Community Safety | field | 80.4% | 83.8% | 8, 7 |
-| Waste & Recycling | field | 83.1% | 83.9% | 2, 1 |
-| Parks | field | 82.7% | 87.4% | 3, 3 |
-| Building Inspections | field | 83.9% | 90.1% | 3, 1 |
-| Animal Services | field | 84.1% | 90.3% | 1, 1 |
-| Transit | information | 81.3% | 72.5% | 7, 7 |
-| Property Tax & Assessment | information | 85.8% | 76.0% | 4, 3 |
+| Fire | field | 81.7% | **74.9%** | 5, 6 |
+| Water | field | 84.2% | 84.6% | 2, 2 |
+| Waste & Recycling | field | 83.2% | 83.9% | 2, 1 |
+| Infrastructure & Land | field | 81.3% | 85.9% | 4, 4 |
+| Parks | field | 83.1% | 88.0% | 3, 3 |
+| Bylaw & Community Safety | field | 80.7% | 85.9% | 8, 7 |
+| Building Inspections | field | 84.3% | 90.1% | 3, 1 |
+| Roads & Mobility | field | 81.9% | 88.2% | 1, 1 |
+| Animal Services | field | 83.9% | 91.5% | 1, 1 |
+| Transit | information | 81.7% | 73.5% | 7, 8 |
+| Property Tax & Assessment | information | 86.1% | 76.0% | 4, 3 |
+
+Query (from `dbt/`): `select service_category, request_type, avg(is_within_benchmark::int) filter (where requested_date < '2025-01-01'), avg(is_within_benchmark::int) filter (where requested_date between '2025-01-01' and '2026-09-30') from fct_service_request group by all`. Corrected on 2026-11-20: the first version of this table did not match the model (see `ai_log.md`).
 
 Reading: among field services, only Fire slipped clearly. New requests elsewhere close as fast or faster than before.
 
