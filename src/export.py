@@ -79,6 +79,17 @@ QUERIES = {
             where request_type = 'field' and age_band = '90+'
             group by all
         ),
+        -- Year-before benchmark share as it looked 12 months ago (same observation lag as the current
+        -- month). Only closed requests count, so a recent month seen today against a full year-earlier
+        -- month would flatter the change.
+        same_lag as (
+            select date_trunc('month', requested_date)::date + interval 12 month as month,
+                   count(*) filter (where is_within_benchmark) / count(*) as within_benchmark_share_ly
+            from fct_service_request
+            where request_type = 'field' and is_within_benchmark is not null
+              and closed_date <= (select max(requested_date) from fct_service_request) - interval 12 month
+            group by 1
+        ),
         kpis as (
             select t.month, t.requests, t.within_benchmark_share, b.open_90_plus, b.roads_share_of_90_plus,
                    t.month < (select max(month) from timeliness) - interval 1 month as is_complete
@@ -87,11 +98,12 @@ QUERIES = {
         )
         select k.*,
                ly.requests as requests_ly,
-               ly.within_benchmark_share as within_benchmark_share_ly,
+               sl.within_benchmark_share_ly,
                ly.open_90_plus as open_90_plus_ly,
                ly.roads_share_of_90_plus as roads_share_of_90_plus_ly
         from kpis as k
         left join kpis as ly on ly.month = k.month - interval 12 month
+        left join same_lag as sl on sl.month = k.month
         order by k.month
     """,
     "reconciliation_monthly": "select * from reconciliation_monthly",

@@ -166,7 +166,9 @@ The sources have different grains, so a normal Tableau filter acts on one source
 
 Two dates on one screen are deliberate. A month-end backlog stock is final once the month is over (latest: October 2026). Flow figures (requests, share closed within benchmark) wait two months, because most requests of the last month are not closed yet (latest complete: September 2026). Each tile says which month it shows.
 
-Per 1,000 residents uses the 2019 municipal census, divides by the community's population once (not once per row), and is shown only by community.
+Per 1,000 residents uses the 2019 municipal census, divides by the community's population once (not once per row), and is shown only by community. Population is joined on community name, because the census reuses four codes for communities the 311 data codes differently, and is left empty below 1,000 residents: new areas had a few dozen people in 2019 and would otherwise top the ranking.
+
+Month end defaults to `Latest`, which follows the data after each extract refresh. The year-before share closed within benchmark is taken as it looked twelve months earlier, at the same observation lag as the current month: only closed requests count, so a recent month seen today against a fully closed year-earlier month would flatter the change (for September 2026, +2.8 points became +1.1).
 
 Earlier version of the model (one source per question):
 

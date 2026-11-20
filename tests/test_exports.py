@@ -72,3 +72,20 @@ def test_kpis_two_latest_months_incomplete(con):
 
 def test_kpis_one_row_per_month(con):
     assert one(con, f"select count(*) - count(distinct month) from {csv('monthly_kpis.csv')}") == 0
+
+
+def test_population_joins_on_name_not_reused_code(con):
+    # census reuses WBN/OGD/PKD/SIL for TARADALE, OAKRIDGE, PARKLAND; 311 data uses TAR, OAK, PKL
+    assert one(con, "select count(*) from fct_backlog_service_monthly where comm_name in "
+                    "('TARADALE', 'OAKRIDGE', 'PARKLAND') and population_2019 is null") == 0
+
+
+def test_population_floor_drops_tiny_2019_counts(con):
+    # communities with fewer than 1,000 residents in 2019 (new areas) give meaningless per-1,000 rates
+    assert one(con, "select count(*) from fct_backlog_service_monthly where population_2019 < 1000") == 0
+
+
+def test_prior_year_share_seen_at_same_lag(con):
+    # Sep 2025 as seen 12 months before the snapshot, not as seen today
+    share_ly = one(con, f"select within_benchmark_share_ly from {csv('monthly_kpis.csv')} where month = date '2026-09-01'")
+    assert abs(share_ly - 0.880) < 0.002

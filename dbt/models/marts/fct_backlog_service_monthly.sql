@@ -64,9 +64,11 @@ joined as (
 
 select
     j.*,
-    -- 2019 census; null when unknown or zero so per-capita rates never divide by zero
-    nullif(pop.population_2019, 0) as population_2019
+    -- 2019 census. Null below 1,000 residents: new areas had a handful of people in 2019 and
+    -- would top any per-1,000 ranking. Joined on name: the census reuses 4 codes (WBN, OGD, PKD, SIL)
+    -- for communities the 311 data codes differently (TAR, OAK, PKL, SRI); names are unique.
+    case when pop.population_2019 >= 1000 then pop.population_2019 end as population_2019
 from joined as j
 left join {{ ref('stg_community_population') }} as pop
-    on j.comm_code = pop.comm_code and j.comm_name = pop.comm_name
+    on j.comm_name = pop.comm_name
 where j.month_end in (select month_end from shown_month_ends)

@@ -35,15 +35,15 @@ def test_parameters_and_defaults(built):
     assert p["Per 1,000 residents"].get("value") == "false"
 
 
-def test_month_end_default_is_latest_in_data(built):
+def test_month_end_lists_every_month_in_data(built):
     import duckdb
 
     latest = duckdb.execute(
         f"select max(month_end) from '{(EXPORTS / 'backlog_service_community_monthly.csv').as_posix()}'"
     ).fetchone()[0]
     m = params(built[0])["Month end"]
-    assert m.get("value") == f"#{latest}#"
-    assert len(m.findall("./members/member")) == 13
+    members = [x.get("value") for x in m.findall("./members/member")]
+    assert members[1] == f'"{latest}"' and len(members) == 14
 
 
 def test_category_list_has_all_first(built):
@@ -74,3 +74,9 @@ def test_priorities_shows_caveats(built):
     texts = " ".join(r.text or "" for d in built[0].iter("dashboard") if d.get("name") == "Priorities"
                      for r in d.iter("run"))
     assert "never closed in the system" in texts and "2019 municipal census" in texts
+
+
+def test_month_end_defaults_to_latest_keyword(built):
+    m = params(built[0])["Month end"]
+    assert m.get("value") == '"Latest"'
+    assert m.findall("./members/member")[0].get("value") == '"Latest"'

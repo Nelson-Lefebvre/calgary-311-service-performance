@@ -61,15 +61,18 @@ P_CATEGORY, P_AGE, P_TYPE, P_MONTH, P_PERCAP = (f"[Parameters].[Parameter {i}]" 
 
 # Calculated fields per source: (internal name, caption, datatype, role, type, formula, format)
 CATEGORY_RULE = f"({P_CATEGORY} = 'All' OR [service_category] = {P_CATEGORY})"
+# Month end is a string parameter: "Latest" (default) follows the data after each refresh.
+MONTH_RULE = (f"([month_end] = IF {P_MONTH} = 'Latest' THEN {{FIXED : MAX([month_end])}} "
+              f"ELSE DATE({P_MONTH}) END)")
 CALCS = {
     "svc": [
         ("Calculation_keep", "Keep row", "boolean", "dimension", "nominal",
-         f"{CATEGORY_RULE} AND [age_band] = {P_AGE} AND [request_type] = {P_TYPE} AND [month_end] = {P_MONTH}", ""),
+         f"{CATEGORY_RULE} AND [age_band] = {P_AGE} AND [request_type] = {P_TYPE} AND {MONTH_RULE}", ""),
         # MIN, not SUM: population repeats on every row of a community. Rate is meaningful per community only.
         ("Calculation_open", "Open (count or per 1,000)", "real", "measure", "quantitative",
          f"IF {P_PERCAP} THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END", "n#,##0.#"),
         ("Calculation_keep_allages", "Keep row (all days open)", "boolean", "dimension", "nominal",
-         f"{CATEGORY_RULE} AND [request_type] = {P_TYPE} AND [month_end] = {P_MONTH}", ""),
+         f"{CATEGORY_RULE} AND [request_type] = {P_TYPE} AND {MONTH_RULE}", ""),
         ("Calculation_pair", "Community and request type", "string", "dimension", "nominal",
          "[comm_name] + ' - ' + [service_name]", ""),
         ("Calculation_selected_band", "Open in selected days-open band", "integer", "measure", "quantitative",
@@ -143,7 +146,7 @@ def parameters(exports: Path) -> str:
         ("Category", "string", q("All"), [q(c) for c in categories]),
         ("Age band", "string", q("90+"), [q(a) for a in ("0-7", "8-30", "31-90", "90+")]),
         ("Request type", "string", q("field"), [q("field"), q("information")]),
-        ("Month end", "date", f"#{months[-1]}#", [f"#{m}#" for m in months]),
+        ("Month end", "string", q("Latest"), [q("Latest")] + [q(m) for m in reversed(months)]),
         ("Per 1,000 residents", "boolean", "false", ["false", "true"]),
     ]
     cols = []
