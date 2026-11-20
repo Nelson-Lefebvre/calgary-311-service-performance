@@ -59,3 +59,18 @@ def test_sources(built):
 def test_every_extract_row_count_matches_csv(built):
     for sid, (hyper_rows, csv_rows) in built[1].items():
         assert hyper_rows == csv_rows, sid
+
+
+def test_sheets_and_dashboards(built):
+    root = built[0]
+    sheets = {w.get("name") for w in root.iter("worksheet")}
+    assert sheets == {"P2 Priority table", "P3 Trend 3 months", "P4 Stock headline", "P5 Communities",
+                      "M1 Flow headline", "M2 Stock trend", "M3 Benchmark trend", "M4 Slipping services",
+                      "M5 Seasonality", "M6 Snow"}
+    assert {d.get("name") for d in root.iter("dashboard")} == {"Priorities", "Monthly situation"}
+
+
+def test_priorities_shows_caveats(built):
+    texts = " ".join(r.text or "" for d in built[0].iter("dashboard") if d.get("name") == "Priorities"
+                     for r in d.iter("run"))
+    assert "never closed in the system" in texts and "2019 municipal census" in texts

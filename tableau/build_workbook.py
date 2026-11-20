@@ -68,6 +68,12 @@ CALCS = {
         # MIN, not SUM: population repeats on every row of a community. Rate is meaningful per community only.
         ("Calculation_open", "Open (count or per 1,000)", "real", "measure", "quantitative",
          f"IF {P_PERCAP} THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END", "n#,##0.#"),
+        ("Calculation_keep_allages", "Keep row (all days open)", "boolean", "dimension", "nominal",
+         f"{CATEGORY_RULE} AND [request_type] = {P_TYPE} AND [month_end] = {P_MONTH}", ""),
+        ("Calculation_pair", "Community and request type", "string", "dimension", "nominal",
+         "[comm_name] + ' - ' + [service_name]", ""),
+        ("Calculation_selected_band", "Open in selected days-open band", "integer", "measure", "quantitative",
+         f"SUM(IF [age_band] = {P_AGE} THEN [open_requests] END)", "n#,##0"),
         ("Calculation_change", "Change vs 3 months earlier", "integer", "measure", "quantitative",
          "SUM([open_requests]) - SUM([open_3m_earlier])", "n+#,##0;-#,##0;0"),
         ("Calculation_change_pct", "Change vs 3 months earlier (%)", "real", "measure", "quantitative",
@@ -249,17 +255,131 @@ def worksheet(name: str, sid: str, *, rows: str, cols: str, decls: list[str], fi
   </worksheet>"""
 
 
-def keep(sid: str) -> tuple[str, str, str]:
-    """Filter on the source's 'Keep row' field; its declaration carries the formula."""
-    ref, _, f = member_filter(sid, "Calculation_keep", "true")
-    decl = (calc_column(sid, "Calculation_keep")
-            + "<column-instance column='[Calculation_keep]' derivation='None' name='[none:Calculation_keep:nk]' "
-              "pivot='key' type='nominal' />")
-    return ref, decl, f
+def cinst(sid: str, calc: str) -> tuple[str, list[str]]:
+    """Reference and declarations for a calculated field: dimension (None) or aggregate measure (User)."""
+    role = next(c[3] for c in CALCS[sid] if c[0] == calc)
+    deriv, prefix, kind, typ = (("None", "none", "nk", "nominal") if role == "dimension"
+                                else ("User", "usr", "qk", "quantitative"))
+    name = f"[{prefix}:{calc}:{kind}]"
+    return (f"[{ds_name(sid)}].{name}",
+            [calc_column(sid, calc),
+             f"<column-instance column='[{calc}]' derivation='{deriv}' name='{name}' pivot='key' type='{typ}' />"])
+
+
+def calc_filter(sid: str, calc: str, *, context: bool = False) -> tuple[str, str, str]:
+    """Keep rows where a boolean calculated field is true. Context filters run before Top N filters."""
+    ref, decls = cinst(sid, calc)
+    _, _, f = member_filter(sid, calc, "true")
+    if context:
+        f = f.replace("<filter class='categorical'", "<filter class='categorical' context='true'", 1)
+    return ref, "".join(decls), f
+
+
+def formula(sid: str, calc: str) -> str:
+    return next(c[5] for c in CALCS[sid] if c[0] == calc)
+
+
+def top_filter(sid: str, dim_calc: str, expression: str, n: int) -> str:
+    level = f"[none:{dim_calc}:nk]"
+    return (f"\n<filter class='categorical' column='[{ds_name(sid)}].{level}'><groupfilter count='{n}' end='top' "
+            "function='end' units='records' user:ui-marker='end' user:ui-top-by-field='true'>"
+            f"<groupfilter direction='DESC' expression={quoteattr(expression)} function='order' user:ui-marker='order'>"
+            f"<groupfilter function='level-members' level='{level}' user:ui-enumeration='all' user:ui-marker='enumerate' />"
+            "</groupfilter></groupfilter></filter>")
+
+
+def svc_decls(*calcs: str) -> list[str]:
+    return [d for c in calcs for d in cinst("svc", c)[1]]
 
 
 def sheets() -> list[str]:
     out = []
+
+    # P2 Priority table: top 25 community x request type in the selected band, all bands shown as columns
+    pair, _ = cinst("svc", "Calculation_pair")
+    band_v, _ = cinst("svc", "Calculation_selected_band")
+    age, aged = inst("svc", "age_band", "None", "nk")
+    v, vd = inst("svc", "open_requests", "Sum", "qk")
+    out.append(worksheet(
+        "P2 Priority table", "svc", rows=pair, cols=age,
+        decls=svc_decls("Calculation_pair", "Calculation_selected_band") + [aged, vd],
+        filters=[calc_filter("svc", "Calculation_keep_allages", context=True)],
+        extra_filters=top_filter("svc", "Calculation_pair", formula("svc", "Calculation_selected_band"), 25),
+        sorts=f"<sort class='computed' column='{pair}' direction='DESC' using='{band_v}' />",
+        mark="Square", encodings=f"<encodings><color column='{v}' /><text column='{v}' /></encodings>",
+        title="Where to send crews first: open requests by community and request type"))
+
+    # P3 Trend: top 25 increases over three months, selected band
+    ch, _ = cinst("svc", "Calculation_change")
+    out.append(worksheet(
+        "P3 Trend 3 months", "svc", rows=pair, cols=ch,
+        decls=svc_decls("Calculation_pair", "Calculation_change"),
+        filters=[calc_filter("svc", "Calculation_keep", context=True)],
+        extra_filters=top_filter("svc", "Calculation_pair", formula("svc", "Calculation_change"), 25),
+        sorts=f"<sort class='computed' column='{pair}' direction='DESC' using='{ch}' />",
+        mark="Bar", encodings=f"<encodings><color column='{ch}' /></encodings>",
+        title="Fastest growing: change in open requests over three months"))
+
+    # P5 Communities: selected measure (count or per 1,000) per community; the map uses the same fields
+    cn, cnd = inst("svc", "comm_name", "None", "nk")
+    op, _ = cinst("svc", "Calculation_open")
+    out.append(worksheet(
+        "P5 Communities", "svc", rows=cn, cols=op, decls=svc_decls("Calculation_open") + [cnd],
+        filters=[calc_filter("svc", "Calculation_keep", context=True)],
+        extra_filters=top_filter("svc", "comm_name", formula("svc", "Calculation_open"), 15),
+        sorts=f"<sort class='computed' column='{cn}' direction='DESC' using='{op}' />",
+        mark="Bar", title="Communities with the most open requests in the selected band"))
+
+    # P4 Stock headline (also used on the monthly screen): latest month end
+    o90, o90d = inst("kpi", "open_90_plus", "Sum", "qk")
+    rs, rsd = inst("kpi", "roads_share_of_90_plus", "Sum", "qk")
+    syoy, syoyd = cinst("kpi", "Calculation_stock_yoy")
+    out.append(worksheet(
+        "P4 Stock headline", "kpi", rows="", cols="", decls=[o90d, rsd] + syoyd,
+        filters=[calc_filter("kpi", "Calculation_latest_stock")],
+        mark="Text", encodings=f"<encodings><text column='{o90}' /><text column='{syoy}' /><text column='{rs}' /></encodings>",
+        title="Field requests open 90+ days, latest month end (all services)"))
+
+    # M1 Flow headline: latest complete month
+    rq, rqd = inst("kpi", "requests", "Sum", "qk")
+    ryoy, ryoyd = cinst("kpi", "Calculation_requests_yoy")
+    sh, shd = inst("kpi", "within_benchmark_share", "Sum", "qk")
+    shy, shyd = cinst("kpi", "Calculation_share_yoy")
+    out.append(worksheet(
+        "M1 Flow headline", "kpi", rows="", cols="", decls=[rqd, shd] + ryoyd + shyd,
+        filters=[calc_filter("kpi", "Calculation_latest_complete")],
+        mark="Text",
+        encodings=(f"<encodings><text column='{rq}' /><text column='{ryoy}' /><text column='{sh}' />"
+                   f"<text column='{shy}' /></encodings>"),
+        title="Requests and share closed within benchmark, latest complete month (all services)"))
+
+    # M2 Stock trend
+    mt, mtd = inst("kpi", "month", "Month-Trunc", "qk")
+    out.append(worksheet(
+        "M2 Stock trend", "kpi", rows=o90, cols=mt, decls=[o90d, mtd], filters=[], mark="Line",
+        title="Requests open 90+ days are at their highest level since 2022"))
+
+    # M3 Benchmark trend: complete months only
+    ss, ssd = cinst("kpi", "Calculation_share_shown")
+    out.append(worksheet(
+        "M3 Benchmark trend", "kpi", rows=ss, cols=mt, decls=ssd + [mtd], filters=[], mark="Line",
+        title="Share of requests closed within their service benchmark, complete months"))
+
+    # M4 Slipping services: 2022-2024 against 2025 on, one dot per period
+    pct, pctd = cinst("cm", "Calculation_pct")
+    cat, catd = inst("cm", "service_category", "None", "nk")
+    per, perd = cinst("cm", "Calculation_period")
+    out.append(worksheet(
+        "M4 Slipping services", "cm", rows=cat, cols=pct, decls=pctd + perd + [catd],
+        filters=[calc_filter("cm", "Calculation_keep")],
+        extra_filters=(f"\n<filter class='categorical' column='{per}'><groupfilter function='except' user:ui-domain='database' "
+                       "user:ui-enumeration='exclusive' user:ui-marker='enumerate'><groupfilter function='level-members' "
+                       "level='[none:Calculation_period:nk]' /><groupfilter function='member' level='[none:Calculation_period:nk]' "
+                       "member='%null%' /></groupfilter></filter>"),
+        sorts=f"<sort class='computed' column='{cat}' direction='ASC' using='{pct}' />",
+        mark="Circle", encodings=f"<encodings><color column='{per}' /></encodings>",
+        title="Closed within own benchmark, 2022-2024 against 2025 on: only Fire slipped"))
+
 
     # M5 Seasonality: average requests per calendar month (full months only)
     mo, mod = inst("cm", "request_month", "Month", "ok")
@@ -285,13 +405,53 @@ def sheets() -> list[str]:
     return out
 
 
+STALE = ("Some requests open 90+ days may be records that were never closed in the system rather than work "
+         "still waiting. Check a sample before sending a crew.")
+POPULATION = "Population from the 2019 municipal census."
+
+
+def data_date(exports: Path) -> str:
+    import json
+
+    latest = json.loads((exports / "manifest.json").read_text(encoding="utf-8"))["latest_request_date"]
+    month_end = column_values(exports, SOURCES["svc"][1], "month_end")[-1]
+    return (f"Backlog to {month_end}, requests to {latest}. Source: City of Calgary Open Data (311 Service Requests "
+            "iahh-g8bj, communities surr-xmvs), ECCC daily climate CALGARY INTL A. Benchmark: each service's own "
+            "80th percentile time to close in 2022-2024. 'Closed' means closed in the system, not fixed.")
+
+
+def dashboard(name: str, title: str, notes: list[str]) -> str:
+    """Empty canvas with the fixed texts; sheets are placed by hand (see the build guide)."""
+    zones = [f"<zone h='6000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text>"
+             f"<run bold='true' fontsize='16'>{escape(title)}</run></formatted-text></zone>"]
+    y = 100000 - 4000 * len(notes)
+    for i, note in enumerate(notes):
+        zones.append(f"<zone h='4000' id='{3 + i}' type-v2='text' w='100000' x='0' y='{y + 4000 * i}'><formatted-text>"
+                     f"<run fontsize='8'>{escape(note)}</run></formatted-text></zone>")
+    return f"""  <dashboard name={quoteattr(name)}>
+    <style />
+    <size maxheight='900' maxwidth='1300' minheight='900' minwidth='1300' sizing-mode='fixed' />
+    <zones>
+      <zone h='100000' id='1' type-v2='layout-basic' w='100000' x='0' y='0'>
+        {chr(10).join(zones)}
+      </zone>
+    </zones>
+  </dashboard>"""
+
+
 def build(exports: Path, extracts: Path) -> str:
     ws = sheets()
+    dated = data_date(exports)
+    dashboards = [
+        dashboard("Priorities", "Calgary 311: where to send crews first", [STALE, POPULATION, dated]),
+        dashboard("Monthly situation", "Calgary 311: monthly situation", [dated]),
+    ]
     names = [s.split("name=", 1)[1].split(">", 1)[0].strip("'\"") for s in ws]
     cards = ("<cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' />"
              "</strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip>"
              "<strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards>")
-    windows = "\n".join(f"    <window class='worksheet' name={quoteattr(n)}>{cards}</window>" for n in names)
+    windows = "\n".join([f"    <window class='dashboard' name={quoteattr(n)}><viewpoints /><active id='-1' /></window>" for n in ("Priorities", "Monthly situation")]
+                        + [f"    <window class='worksheet' name={quoteattr(n)}>{cards}</window>" for n in names])
     return f"""<?xml version='1.0' encoding='utf-8' ?>
 <workbook original-version='18.1' source-build='2026.3.0' source-platform='win' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
   <preferences />
@@ -302,6 +462,9 @@ def build(exports: Path, extracts: Path) -> str:
   <worksheets>
 {chr(10).join(ws)}
   </worksheets>
+  <dashboards>
+{chr(10).join(dashboards)}
+  </dashboards>
   <windows source-height='30'>
 {windows}
   </windows>
@@ -355,6 +518,6 @@ def run(exports: Path, out: Path, extracts: Path) -> dict[str, tuple[int, int]]:
 
 if __name__ == "__main__":
     exports = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data" / "processed" / "exports"
-    # optional second argument: extracts folder (default data/processed/tableau; Tableau locks open .hyper files)
-    extracts = Path(sys.argv[2]) if len(sys.argv) > 2 else exports.parent / "tableau"
+    # optional second argument: extracts folder (default data/processed/extracts; Tableau locks open .hyper files)
+    extracts = Path(sys.argv[2]) if len(sys.argv) > 2 else exports.parent / "extracts"
     run(exports, ROOT / "tableau" / "calgary_311.twb", extracts)
