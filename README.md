@@ -16,7 +16,9 @@ Operations analytics on 2.49 million real City of Calgary 311 service requests (
 
 All data is real. Figures are from the development snapshot of 2026-11-19; the final snapshot is 2026-12-01. Every number traces to a query in [`docs/evidence_log.md`](docs/evidence_log.md).
 
-**[Open the dashboard on Tableau Public](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance)**
+[![Calgary 311 Service Performance dashboard on Tableau Public](https://public.tableau.com/static/images/ca/calgary_311/Calgary311ServicePerformance/1.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance)
+
+*Click the image to open the interactive dashboard on Tableau Public (filters and tooltips).*
 
 > The final `2026-12-01` snapshot is next; figures will move slightly.
 
@@ -98,6 +100,61 @@ flowchart LR
 - **Benchmark.** Each request is judged against the 80th percentile time to close of its own service in 2022-2024, with a category fallback for services too small to have a stable percentile.
 - **Reporting.** [Tableau Public dashboard](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance), built by `tableau/build_workbook.py` from pre-aggregated CSVs and Hyper extracts, one data source per question and one relationship (boundaries to community backlog on `comm_code`).
 - **Refresh.** A GitHub Actions job runs the whole chain on the 1st of each month and publishes the extracts as a Release. There is no cloud database: Tableau Public cannot connect to one live, and 2.5 million rows fit on a laptop.
+
+### Data model
+
+One request-level fact carries the benchmark verdict; the aggregate marts and the Tableau extracts are built from it. Grain of every table and the semi-additive rule for the backlog are in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#data-model).
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{
+  'primaryColor':'#EEF3F8','primaryBorderColor':'#2C7FC4','primaryTextColor':'#10263A',
+  'lineColor':'#7B8D9C','fontFamily':'Segoe UI, system-ui, sans-serif','fontSize':'13px'}}}%%
+erDiagram
+    service_category_map ||--o{ fct_service_request : "service_prefix"
+    int_category_benchmark ||--o{ fct_service_request : "benchmark_key"
+    fct_service_request }o--|| stg_weather_daily : "requested_date = weather_date"
+    fct_service_request }o--o| communities : "comm_code"
+
+    fct_service_request {
+        string service_request_id PK
+        date   requested_date
+        date   closed_date "null while open"
+        string service_name
+        string service_category "from seed"
+        string request_type "field / information / unmapped"
+        string comm_code FK
+        bool   is_closed_valid "closed, not duplicate, not deleted"
+        int    days_to_close "whole days, dates only"
+        double benchmark_days_p80 "own service, 2022-2024"
+        bool   is_within_benchmark
+        bool   is_assessed_period "requested 2025 or later"
+    }
+    int_category_benchmark {
+        string benchmark_key PK "service, or category fallback"
+        string benchmark_level "service / category"
+        int    benchmark_closed_requests
+        double benchmark_days_p80
+        double benchmark_days_p90
+    }
+    service_category_map {
+        string service_prefix PK
+        string service_category
+        string request_type
+    }
+    stg_weather_daily {
+        date   weather_date PK
+        double snowfall_cm
+        double snow_on_ground_cm
+        double min_temp_c
+        double precipitation_mm
+    }
+    communities {
+        string comm_code PK
+        string name
+        string sector
+        geometry polygon
+    }
+```
 
 Pipeline, dbt lineage, data model (entity diagram), grain of every table, tests and trade-offs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

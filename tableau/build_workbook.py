@@ -58,6 +58,11 @@ CALCS = {
 }
 
 
+CAPTIONS = {"open_requests": "Open requests", "month_end": "Month end", "service_category": "Service category",
+            "comm_name": "Community", "request_month": "Month", "snow_requests": "Snow requests",
+            "snowfall_cm": "Snowfall (cm)", "day": "Day"}
+
+
 def header(csv: Path) -> list[str]:
     return csv.read_text(encoding="utf-8").splitlines()[0].split(",")
 
@@ -81,9 +86,11 @@ def datasource(sid: str) -> str:
     for c in cols:
         dt = dtype(c)
         role, typ = ("measure", "quantitative") if dt in {"integer", "real"} else ("dimension", "ordinal" if dt == "date" else "nominal")
-        meta.append(f"    <column datatype='{dt}' name='[{c}]' role='{role}' type='{typ}' />")
+        cap = f" caption={quoteattr(CAPTIONS[c])}" if c in CAPTIONS else ""
+        meta.append(f"    <column{cap} datatype='{dt}' name='[{c}]' role='{role}' type='{typ}' />")
     for name, cap, dt, role, typ, formula in CALCS.get(sid, []):
-        meta.append(f"    <column caption={quoteattr(cap)} datatype='{dt}' name='[{name}]' role='{role}' type='{typ}'>\n"
+        fmt = " default-format='p0%'" if name == "Calculation_pct" else ""
+        meta.append(f"    <column caption={quoteattr(cap)}{fmt} datatype='{dt}' name='[{name}]' role='{role}' type='{typ}'>\n"
                     f"      <calculation class='tableau' formula={quoteattr(formula)} />\n    </column>")
     return f"""  <datasource caption={quoteattr(caption)} inline='true' name='{ds_name(sid)}' version='18.1'>
     <connection class='federated'>
@@ -162,22 +169,40 @@ def worksheet(name: str, sid: str, *, rows: str, cols: str, decls: list[str], fi
 def calc_decl(sid: str, name: str) -> str:
     for n, cap, dt, role, typ, formula in CALCS[sid]:
         if n == name:
-            return (f"<column caption={quoteattr(cap)} datatype='{dt}' name='[{n}]' role='{role}' type='{typ}'>"
+            fmt = " default-format='p0%'" if n == "Calculation_pct" else ""
+            return (f"<column caption={quoteattr(cap)}{fmt} datatype='{dt}' name='[{n}]' role='{role}' type='{typ}'>"
                     f"<calculation class='tableau' formula={quoteattr(formula)} /></column>")
     raise KeyError(name)
+
+
+def key_numbers() -> str:
+    """Headline figures, computed from the exports at build time so the text matches the data."""
+    import csv
+    from collections import defaultdict
+
+    rows = [r for r in csv.DictReader((EXPORTS / "backlog_category_monthly.csv").open(encoding="utf-8"))
+            if r["request_type"] == "field" and r["age_band"] == "90+"]
+    by_month, roads = defaultdict(int), defaultdict(int)
+    for r in rows:
+        by_month[r["month_end"]] += int(r["open_requests"])
+        if r["service_category"] == "Roads & Mobility":
+            roads[r["month_end"]] += int(r["open_requests"])
+    latest = max(by_month)
+    base = min(m for m in by_month if m[5:7] == latest[5:7])
+    change = round((by_month[latest] / by_month[base] - 1) * 100)
+    names = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+
+    def label(m: str) -> str:
+        return f"{names[int(m[5:7]) - 1]} {m[:4]}"
+
+    return (f"{by_month[latest]:,} field requests open 90+ days at the end of {label(latest)}, "
+            f"{change:+d}% on {label(base)}. Roads & Mobility holds {round(roads[latest] / by_month[latest] * 100)}% of them.")
 
 
 def build() -> str:
     sheets = []
 
-    # 1. Headline: field requests open 90+ days at the latest month end
     v, vd = inst("bc", "open_requests", "Sum", "qk")
-    sheets.append(worksheet(
-        "Headline backlog", "bc", rows="", cols="", decls=[vd, calc_decl("bc", "Calculation_latest")],
-        filters=[member_filter("bc", "request_type", "field"), member_filter("bc", "age_band", "90+"),
-                 member_filter("bc", "Calculation_latest", "true")],
-        mark="Text", encodings=f"<encodings><text column='{v}' /></encodings>",
-        title="Field requests open 90+ days, latest month end"))
 
     # 2. Old backlog trend
     m, md = inst("bc", "month_end", "Month-Trunc", "qk")
@@ -192,12 +217,13 @@ def build() -> str:
     cat, catd = inst("cm", "service_category", "None", "nk")
     per, perd = inst("cm", "Calculation_period", "None", "nk")
     sheets.append(worksheet(
-        "Timeliness by service", "cm", rows=f"({cat} / {per})", cols=pct,
+        "Timeliness by service", "cm", rows=cat, cols=pct,
         decls=[calc_decl("cm", "Calculation_pct"), calc_decl("cm", "Calculation_period"), pct_d, catd, perd],
         filters=[member_filter("cm", "request_type", "field")],
         extra_filters=f"\n<filter class='categorical' column='{per}'><groupfilter function='except' user:ui-domain='database' user:ui-enumeration='exclusive' user:ui-marker='enumerate'><groupfilter function='level-members' level='[none:Calculation_period:nk]' /><groupfilter function='member' level='[none:Calculation_period:nk]' member='%null%' /></groupfilter></filter>",
-        mark="Bar", encodings=f"<encodings><color column='{per}' /></encodings>",
-        title="Share of closed requests within their own service benchmark (P80 of 2022-2024)"))
+        sorts=f"<sort class='computed' column='{cat}' direction='ASC' using='{pct}' />",
+        mark="Circle", encodings=f"<encodings><color column='{per}' /></encodings>",
+        title="Closed within own benchmark: only Fire fell (blue 2022-2024, orange 2025 on)"))
 
     # 4. Old backlog by service, latest month end
     bcat, bcatd = inst("bc", "service_category", "None", "nk")
@@ -216,9 +242,12 @@ def build() -> str:
            f"function='order' user:ui-marker='order'><groupfilter function='level-members' level='[none:comm_name:nk]' "
            "user:ui-enumeration='all' user:ui-marker='enumerate' /></groupfilter></groupfilter></filter>")
     sheets.append(worksheet(
-        "Top communities", "bcom", rows=cn, cols=cv, decls=[cvd, cnd, calc_decl("bcom", "Calculation_latest")],
+        "Top communities", "bcom", rows=cn, cols=cv, decls=[cvd, cnd, calc_decl("bcom", "Calculation_latest"), inst("bcom", "comm_code", "None", "nk")[1]],
         filters=[member_filter("bcom", "age_band", "90+"), member_filter("bcom", "Calculation_latest", "true")],
-        extra_filters=top,
+        extra_filters=top + (f"\n<filter class='categorical' column='[{ds_name('bcom')}].[none:comm_code:nk]'><groupfilter function='except' "
+                             "user:ui-domain='database' user:ui-enumeration='exclusive' user:ui-marker='enumerate'>"
+                             "<groupfilter function='level-members' level='[none:comm_code:nk]' />"
+                             "<groupfilter function='member' level='[none:comm_code:nk]' member='&quot;N/A&quot;' /></groupfilter></filter>"),
         sorts=f"<sort class='computed' column='{cn}' direction='DESC' using='{cv}' />",
         mark="Bar", title="Top 12 communities by field requests open 90+ days"))
 
@@ -243,7 +272,7 @@ def build() -> str:
         extra_filters=win, mark="Bar",
         title="Winter 2025-2026: snow requests (top) follow snowfall (bottom) by one to three days"))
 
-    names = ["Headline backlog", "Old backlog trend", "Timeliness by service", "Old backlog by service",
+    names = ["Old backlog trend", "Timeliness by service", "Old backlog by service",
              "Top communities", "Seasonality", "Snow and requests"]
 
     # Dashboard: title, headline, then a 2 x 3 grid. Coordinates are in 1/100000 of the canvas.
@@ -254,9 +283,9 @@ def build() -> str:
             "2022-2024. 'Closed' means closed in the system, not fixed. Snapshot 2026-11-19.")
     grid = [("Old backlog trend", 0, 0), ("Timeliness by service", 1, 0), ("Old backlog by service", 0, 1),
             ("Top communities", 1, 1), ("Seasonality", 0, 2), ("Snow and requests", 1, 2)]
-    zones = [f"<zone h='7000' id='2' type-v2='text' w='72000' x='0' y='0'><formatted-text>"
-             f"<run bold='true' fontsize='14'>{escape(title)}</run></formatted-text></zone>",
-             "<zone h='7000' id='3' name='Headline backlog' show-title='true' w='28000' x='72000' y='0' />"]
+    zones = [f"<zone h='7000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text>"
+             f"<run bold='true' fontsize='14'>{escape(title)}</run><run>&#10;</run>"
+             f"<run fontsize='12'>{escape(key_numbers())}</run></formatted-text></zone>"]
     zid = 4
     for name, cx, cy in grid:
         zones.append(f"<zone h='29000' id='{zid}' name={quoteattr(name)} w='50000' x='{cx * 50000}' y='{7000 + cy * 29000}' />")

@@ -25,9 +25,9 @@
         </columns>
       </relation>
     </connection>
-    <column datatype='string' name='[service_category]' role='dimension' type='nominal' />
+    <column caption="Service category" datatype='string' name='[service_category]' role='dimension' type='nominal' />
     <column datatype='string' name='[request_type]' role='dimension' type='nominal' />
-    <column datatype='date' name='[request_month]' role='dimension' type='ordinal' />
+    <column caption="Month" datatype='date' name='[request_month]' role='dimension' type='ordinal' />
     <column datatype='integer' name='[requests]' role='measure' type='quantitative' />
     <column datatype='integer' name='[closed_requests]' role='measure' type='quantitative' />
     <column datatype='real' name='[median_days_to_close]' role='measure' type='quantitative' />
@@ -36,7 +36,7 @@
     <column datatype='integer' name='[closed_with_benchmark]' role='measure' type='quantitative' />
     <column datatype='real' name='[pct_within_benchmark]' role='measure' type='quantitative' />
     <column datatype='real' name='[pct_within_benchmark_p90]' role='measure' type='quantitative' />
-    <column caption="% within benchmark" datatype='real' name='[Calculation_pct]' role='measure' type='quantitative'>
+    <column caption="% within benchmark" default-format='p0%' datatype='real' name='[Calculation_pct]' role='measure' type='quantitative'>
       <calculation class='tableau' formula="SUM([closed_within_benchmark]) / SUM([closed_with_benchmark])" />
     </column>
     <column caption="Period" datatype='string' name='[Calculation_period]' role='dimension' type='nominal'>
@@ -71,11 +71,11 @@
         </columns>
       </relation>
     </connection>
-    <column datatype='date' name='[month_end]' role='dimension' type='ordinal' />
-    <column datatype='string' name='[service_category]' role='dimension' type='nominal' />
+    <column caption="Month end" datatype='date' name='[month_end]' role='dimension' type='ordinal' />
+    <column caption="Service category" datatype='string' name='[service_category]' role='dimension' type='nominal' />
     <column datatype='string' name='[request_type]' role='dimension' type='nominal' />
     <column datatype='string' name='[age_band]' role='dimension' type='nominal' />
-    <column datatype='integer' name='[open_requests]' role='measure' type='quantitative' />
+    <column caption="Open requests" datatype='integer' name='[open_requests]' role='measure' type='quantitative' />
     <column caption="Latest month end" datatype='boolean' name='[Calculation_latest]' role='dimension' type='nominal'>
       <calculation class='tableau' formula="[month_end] = {FIXED : MAX([month_end])}" />
     </column>
@@ -102,11 +102,11 @@
         </columns>
       </relation>
     </connection>
-    <column datatype='date' name='[month_end]' role='dimension' type='ordinal' />
+    <column caption="Month end" datatype='date' name='[month_end]' role='dimension' type='ordinal' />
     <column datatype='string' name='[comm_code]' role='dimension' type='nominal' />
-    <column datatype='string' name='[comm_name]' role='dimension' type='nominal' />
+    <column caption="Community" datatype='string' name='[comm_name]' role='dimension' type='nominal' />
     <column datatype='string' name='[age_band]' role='dimension' type='nominal' />
-    <column datatype='integer' name='[open_requests]' role='measure' type='quantitative' />
+    <column caption="Open requests" datatype='integer' name='[open_requests]' role='measure' type='quantitative' />
     <column caption="Latest month end" datatype='boolean' name='[Calculation_latest]' role='dimension' type='nominal'>
       <calculation class='tableau' formula="[month_end] = {FIXED : MAX([month_end])}" />
     </column>
@@ -133,9 +133,9 @@
         </columns>
       </relation>
     </connection>
-    <column datatype='date' name='[day]' role='dimension' type='ordinal' />
-    <column datatype='integer' name='[snow_requests]' role='measure' type='quantitative' />
-    <column datatype='real' name='[snowfall_cm]' role='measure' type='quantitative' />
+    <column caption="Day" datatype='date' name='[day]' role='dimension' type='ordinal' />
+    <column caption="Snow requests" datatype='integer' name='[snow_requests]' role='measure' type='quantitative' />
+    <column caption="Snowfall (cm)" datatype='real' name='[snowfall_cm]' role='measure' type='quantitative' />
     <column datatype='real' name='[snow_on_ground_cm]' role='measure' type='quantitative' />
     <column datatype='real' name='[min_temp_c]' role='measure' type='quantitative' />
   <extract count='-1' enabled='true' units='records'>
@@ -146,43 +146,6 @@
   </datasource>
   </datasources>
   <worksheets>
-  <worksheet name="Headline backlog">
-    <layout-options><title><formatted-text><run>Field requests open 90+ days, latest month end</run></formatted-text></title></layout-options>
-    <table>
-      <view>
-        <datasources><datasource caption="Backlog (backlog_category_monthly)" name='federated.bc' /></datasources>
-        <datasource-dependencies datasource='federated.bc'>
-          <column-instance column='[open_requests]' derivation='Sum' name='[sum:open_requests:qk]' pivot='key' type='quantitative' />
-<column caption="Latest month end" datatype='boolean' name='[Calculation_latest]' role='dimension' type='nominal'><calculation class='tableau' formula="[month_end] = {FIXED : MAX([month_end])}" /></column>
-<column-instance column='[request_type]' derivation='None' name='[none:request_type:nk]' pivot='key' type='nominal' />
-<column-instance column='[age_band]' derivation='None' name='[none:age_band:nk]' pivot='key' type='nominal' />
-<column-instance column='[Calculation_latest]' derivation='None' name='[none:Calculation_latest:nk]' pivot='key' type='nominal' />
-        </datasource-dependencies>
-        <filter class='categorical' column='[federated.bc].[none:request_type:nk]'>
-  <groupfilter function='member' level='[none:request_type:nk]' member='"field"' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
-</filter>
-<filter class='categorical' column='[federated.bc].[none:age_band:nk]'>
-  <groupfilter function='member' level='[none:age_band:nk]' member='"90+"' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
-</filter>
-<filter class='categorical' column='[federated.bc].[none:Calculation_latest:nk]'>
-  <groupfilter function='member' level='[none:Calculation_latest:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
-</filter>
-        
-        <slices><column>[federated.bc].[none:request_type:nk]</column><column>[federated.bc].[none:age_band:nk]</column><column>[federated.bc].[none:Calculation_latest:nk]</column></slices>
-        <aggregation value='true' />
-      </view>
-      <style />
-      <panes>
-        <pane selection-relaxation-option='selection-relaxation-allow'>
-          <view><breakdown value='auto' /></view>
-          <mark class='Text' />
-          <encodings><text column='[federated.bc].[sum:open_requests:qk]' /></encodings>
-        </pane>
-      </panes>
-      <rows></rows>
-      <cols></cols>
-    </table>
-  </worksheet>
   <worksheet name="Old backlog trend">
     <layout-options><title><formatted-text><run>Field requests open 90+ days reached their highest level since 2022</run></formatted-text></title></layout-options>
     <table>
@@ -217,12 +180,12 @@
     </table>
   </worksheet>
   <worksheet name="Timeliness by service">
-    <layout-options><title><formatted-text><run>Share of closed requests within their own service benchmark (P80 of 2022-2024)</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run>Closed within own benchmark: only Fire fell (blue 2022-2024, orange 2025 on)</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Timeliness (category_monthly)" name='federated.cm' /></datasources>
         <datasource-dependencies datasource='federated.cm'>
-          <column caption="% within benchmark" datatype='real' name='[Calculation_pct]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([closed_within_benchmark]) / SUM([closed_with_benchmark])" /></column>
+          <column caption="% within benchmark" default-format='p0%' datatype='real' name='[Calculation_pct]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([closed_within_benchmark]) / SUM([closed_with_benchmark])" /></column>
 <column caption="Period" datatype='string' name='[Calculation_period]' role='dimension' type='nominal'><calculation class='tableau' formula="IF [request_month] &lt; #2025-01-01# THEN '2022-2024' ELSEIF [request_month] &lt;= DATEADD('month', -2, {FIXED : MAX([request_month])}) THEN '2025 on' END" /></column>
 <column-instance column='[Calculation_pct]' derivation='User' name='[usr:Calculation_pct:qk]' pivot='key' type='quantitative' />
 <column-instance column='[service_category]' derivation='None' name='[none:service_category:nk]' pivot='key' type='nominal' />
@@ -233,7 +196,7 @@
   <groupfilter function='member' level='[none:request_type:nk]' member='"field"' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
 </filter>
 <filter class='categorical' column='[federated.cm].[none:Calculation_period:nk]'><groupfilter function='except' user:ui-domain='database' user:ui-enumeration='exclusive' user:ui-marker='enumerate'><groupfilter function='level-members' level='[none:Calculation_period:nk]' /><groupfilter function='member' level='[none:Calculation_period:nk]' member='%null%' /></groupfilter></filter>
-        
+        <sort class='computed' column='[federated.cm].[none:service_category:nk]' direction='ASC' using='[federated.cm].[usr:Calculation_pct:qk]' />
         <slices><column>[federated.cm].[none:request_type:nk]</column></slices>
         <aggregation value='true' />
       </view>
@@ -241,11 +204,11 @@
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
-          <mark class='Bar' />
+          <mark class='Circle' />
           <encodings><color column='[federated.cm].[none:Calculation_period:nk]' /></encodings>
         </pane>
       </panes>
-      <rows>([federated.cm].[none:service_category:nk] / [federated.cm].[none:Calculation_period:nk])</rows>
+      <rows>[federated.cm].[none:service_category:nk]</rows>
       <cols>[federated.cm].[usr:Calculation_pct:qk]</cols>
     </table>
   </worksheet>
@@ -296,6 +259,7 @@
           <column-instance column='[open_requests]' derivation='Sum' name='[sum:open_requests:qk]' pivot='key' type='quantitative' />
 <column-instance column='[comm_name]' derivation='None' name='[none:comm_name:nk]' pivot='key' type='nominal' />
 <column caption="Latest month end" datatype='boolean' name='[Calculation_latest]' role='dimension' type='nominal'><calculation class='tableau' formula="[month_end] = {FIXED : MAX([month_end])}" /></column>
+<column-instance column='[comm_code]' derivation='None' name='[none:comm_code:nk]' pivot='key' type='nominal' />
 <column-instance column='[age_band]' derivation='None' name='[none:age_band:nk]' pivot='key' type='nominal' />
 <column-instance column='[Calculation_latest]' derivation='None' name='[none:Calculation_latest:nk]' pivot='key' type='nominal' />
         </datasource-dependencies>
@@ -306,6 +270,7 @@
   <groupfilter function='member' level='[none:Calculation_latest:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
 </filter>
 <filter class='categorical' column='[federated.bcom].[none:comm_name:nk]'><groupfilter count='12' end='top' function='end' units='records' user:ui-marker='end' user:ui-top-by-field='true'><groupfilter direction='DESC' expression='SUM([open_requests])' function='order' user:ui-marker='order'><groupfilter function='level-members' level='[none:comm_name:nk]' user:ui-enumeration='all' user:ui-marker='enumerate' /></groupfilter></groupfilter></filter>
+<filter class='categorical' column='[federated.bcom].[none:comm_code:nk]'><groupfilter function='except' user:ui-domain='database' user:ui-enumeration='exclusive' user:ui-marker='enumerate'><groupfilter function='level-members' level='[none:comm_code:nk]' /><groupfilter function='member' level='[none:comm_code:nk]' member='&quot;N/A&quot;' /></groupfilter></filter>
         <sort class='computed' column='[federated.bcom].[none:comm_name:nk]' direction='DESC' using='[federated.bcom].[sum:open_requests:qk]' />
         <slices><column>[federated.bcom].[none:age_band:nk]</column><column>[federated.bcom].[none:Calculation_latest:nk]</column></slices>
         <aggregation value='true' />
@@ -388,8 +353,7 @@
     <size maxheight='1400' maxwidth='1300' minheight='1400' minwidth='1300' sizing-mode='fixed' />
     <zones>
       <zone h='100000' id='1' type-v2='layout-basic' w='100000' x='0' y='0'>
-        <zone h='7000' id='2' type-v2='text' w='72000' x='0' y='0'><formatted-text><run bold='true' fontsize='14'>Calgary 311 Service Performance. Field crews close new requests as fast as before, except Fire. Old work is the problem: requests open 90+ days are at their highest level since 2022.</run></formatted-text></zone>
-<zone h='7000' id='3' name='Headline backlog' show-title='true' w='28000' x='72000' y='0' />
+        <zone h='7000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text><run bold='true' fontsize='14'>Calgary 311 Service Performance. Field crews close new requests as fast as before, except Fire. Old work is the problem: requests open 90+ days are at their highest level since 2022.</run><run>&#10;</run><run fontsize='12'>34,661 field requests open 90+ days at the end of Oct 2026, +17% on Oct 2022. Roads &amp; Mobility holds 77% of them.</run></formatted-text></zone>
 <zone h='29000' id='4' name="Old backlog trend" w='50000' x='0' y='7000' />
 <zone h='29000' id='5' name="Timeliness by service" w='50000' x='50000' y='7000' />
 <zone h='29000' id='6' name="Old backlog by service" w='50000' x='0' y='36000' />
@@ -402,7 +366,6 @@
   </dashboard>
   </dashboards>
   <windows source-height='30'>
-    <window class='worksheet' name="Headline backlog"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>
     <window class='worksheet' name="Old backlog trend"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>
     <window class='worksheet' name="Timeliness by service"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>
     <window class='worksheet' name="Old backlog by service"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>
