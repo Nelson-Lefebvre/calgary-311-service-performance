@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: fct_service_request
+    description: One valid 311 request (not duplicate, not deleted) from 2022 onward.
+    columns:
+      - name: service_request_id
+        data_tests: [unique, not_null]
+      - name: service_category
+        data_tests: [not_null]
+      - name: days_to_close
+        description: Whole days from request to closure; null when open.
+        data_tests:
+          - at_least:
+              arguments:
+                min_value: 0
+
+  - name: fct_category_monthly
+    description: Service category x request month, ratios recomputed at this grain.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [service_category, request_month]
+
+  - name: fct_backlog_monthly
+    description: Open valid requests at each complete month end. Semi-additive.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [month_end, service_category, request_type, comm_code, comm_name, age_band]
+
+  - name: reconciliation_monthly
+    description: iahh-g8bj monthly totals against the separate arf6-qysm extract.

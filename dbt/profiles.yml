@@ -1,0 +1,7 @@
+calgary_311:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: ../data/processed/calgary311.duckdb
+      threads: 4

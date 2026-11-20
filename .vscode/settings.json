@@ -1,0 +1,39 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.typeCheckingMode": "basic",
+
+    "jupyter.notebookFileRoot": "${fileDirname}",
+    "jupyter.askForKernelRestart": false,
+    "notebook.formatOnSave.enabled": true,
+    "notebook.output.scrolling": true,
+    "notebook.lineNumbers": "on",
+
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.cwd": "${workspaceFolder}",
+
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.ipynb_checkpoints": true,
+        "**/.ruff_cache": true,
+        "**/.pytest_cache": true,
+        ".assets": true,
+        "desktop.ini": true
+    },
+    "files.watcherExclude": {
+        "**/.venv/**": true,
+        "**/data/**": true
+    },
+    "search.exclude": {
+        "**/.venv": true,
+        "**/data": true
+    }
+}

@@ -1,0 +1,41 @@
+service_prefix,service_category,request_type
+Roads,Roads & Mobility,field
+WRS,Waste & Recycling,field
+GFL,Waste & Recycling,field
+Bylaw,Bylaw & Community Safety,field
+Corporate,Bylaw & Community Safety,field
+Compliance,Bylaw & Community Safety,field
+Business Safety,Bylaw & Community Safety,field
+Community Safety,Bylaw & Community Safety,field
+Animal / Bylaw,Bylaw & Community Safety,field
+VFH,Bylaw & Community Safety,field
+AS,Animal Services,field
+ACPL,Animal Services,information
+Parks,Parks,field
+WATS,Water,field
+UEP,Water,field
+WATR,Water,field
+Finance,Property Tax & Assessment,information
+AT,Property Tax & Assessment,information
+CBS Inspection,Building Inspections,field
+DBBS Inspection,Building Inspections,field
+DBBS Concern,Building Inspections,field
+CBS,Building & Development Services,information
+DBBS,Building & Development Services,information
+CT,Transit,information
+CT AC,Transit,information
+After Hours Transit,Transit,information
+CFD,Fire,field
+RSP,Recreation & Social Programs,information
+CN,Recreation & Social Programs,information
+Recreation,Recreation & Social Programs,information
+REC,Recreation & Social Programs,information
+Active Living Program Application,Recreation & Social Programs,information
+311 Contact Us,General Inquiries & Feedback,information
+Opinions on Business Units,General Inquiries & Feedback,information
+Customer Service & Communications,General Inquiries & Feedback,information
+CSC,General Inquiries & Feedback,information
+Law,Corporate Services,information
+HR,Corporate Services,information
+PSD,Infrastructure & Land,field
+Stewardship of City Owned Land,Infrastructure & Land,field

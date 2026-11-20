@@ -1,0 +1,26 @@
+name: calgary_311
+version: "0.1.0"
+config-version: 2
+profile: calgary_311
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Snapshot folder under data/raw/. Override: dbt build --vars '{snapshot: 2026-12-01}'
+  snapshot: "2026-11-19"
+  benchmark_start: "2022-01-01"
+  benchmark_end: "2025-01-01"
+
+models:
+  calgary_311:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table
