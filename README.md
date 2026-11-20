@@ -16,9 +16,15 @@ Operations analytics on 2.49 million real City of Calgary 311 service requests (
 
 All data is real. Figures are from the development snapshot of 2026-11-19; the final snapshot is 2026-12-01. Every number traces to a query in [`docs/evidence_log.md`](docs/evidence_log.md).
 
-[![Calgary 311 Service Performance dashboard on Tableau Public](https://public.tableau.com/static/images/ca/calgary_311/Calgary311ServicePerformance/1.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance)
+**Priorities**: which communities and request types to send crews to first.
 
-*Click the image to open the interactive dashboard on Tableau Public (filters and tooltips).*
+[![Priorities dashboard: open requests by community and request type](docs/img/dashboard-priorities.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311)
+
+**Monthly situation**: stock of old work, benchmark share, slipping services, seasonality and snow.
+
+[![Monthly situation dashboard](docs/img/dashboard-monthly.png)](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311)
+
+*Screenshots from Tableau Public Desktop (French locale). Click an image to open the interactive workbook on Tableau Public (filters and tooltips).*
 
 > The final `2026-12-01` snapshot is next; figures will move slightly.
 
@@ -98,7 +104,7 @@ flowchart LR
 - **Ingestion.** The SODA API is read month by month, and each month's row count must equal the API's own count or the run stops. Requests opened before 2022 and still open are pulled separately, because the backlog needs them.
 - **Modelling.** dbt on DuckDB, in three layers. One request-level fact, `fct_service_request`, carries the benchmark verdict for each request. Aggregate marts sit at a stated grain, and the backlog mart is semi-additive: it is summed across categories and communities, never across months.
 - **Benchmark.** Each request is judged against the 80th percentile time to close of its own service in 2022-2024, with a category fallback for services too small to have a stable percentile.
-- **Reporting.** [Tableau Public dashboard](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance) with two screens: **Priorities** (which communities and request types to send crews to first, with shared filters for service, days open, request type and month, and a three-month trend) and **Monthly situation** (headline figures against the year before, trends, services slipping against their own benchmark). `tableau/build_workbook.py` writes the sources, shared parameters, calculated fields and sheets; the layout is built by hand in Tableau Public. Model and decisions: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#tableau-model).
+- **Reporting.** [Tableau Public dashboard](https://public.tableau.com/app/profile/nelson.lefebvre/viz/calgary_311/Calgary311ServicePerformance) with two screens: **Priorities** (which communities and request types to send crews to first, with shared filters for service, days open, request type and month, and a three-month trend) and **Monthly situation** (headline figures against the year before, trends, services slipping against their own benchmark). `tableau/build_workbook.py` writes the sources, shared parameters, calculated fields, sheets and both dashboard layouts; the community map and its filter action are added by hand in Tableau Public. Model and decisions: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#tableau-model).
 - **Refresh.** A GitHub Actions job runs the whole chain on the 1st of each month and publishes the extracts as a Release. There is no cloud database: Tableau Public cannot connect to one live, and 2.5 million rows fit on a laptop.
 
 ### Data model

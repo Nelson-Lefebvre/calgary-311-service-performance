@@ -1,12 +1,13 @@
-"""Write the Tableau Public workbook skeleton (tableau/calgary_311.twb) from the export CSVs.
+"""Write the Tableau Public workbook (tableau/calgary_311.twb) from the export CSVs.
 
 Usage:
     uv run python tableau/build_workbook.py [exports_dir] [extracts_dir]
 
 What this script owns: data sources (as Hyper extracts, which Tableau Public requires), the shared
-parameters, calculated fields, captions and formats, and one sheet per visual. What it does not own:
-dashboard layout, formatting and actions, which are built by hand in Tableau Public following
-guide/guide-dashboard-operationnel.md (outside the repo). See docs/ARCHITECTURE.md, "Tableau model".
+parameters, calculated fields, captions and formats, one styled sheet per visual, and the layout of
+both dashboards. What it does not own: the community map and its filter action, the period colours
+of M4 and the phone layouts, added by hand following guide/guide-dashboard-operationnel.md (outside
+the repo). Rerunning the script overwrites those hand edits. See docs/ARCHITECTURE.md, "Tableau model".
 
 The sources are separate files at different grains, so a normal Tableau filter only acts on one of
 them. The shared filters are parameters instead: each source has a calculated field that compares
@@ -42,8 +43,8 @@ CAPTIONS = {
     "service_name": "Request type (detail)", "comm_code": "Community code", "comm_name": "Community",
     "age_band": "Days open", "open_requests": "Open requests", "open_3m_earlier": "Open requests 3 months earlier",
     "population_2019": "Population (2019)", "month": "Month", "requests": "Requests",
-    "within_benchmark_share": "Closed within benchmark", "open_90_plus": "Open 90+ days",
-    "roads_share_of_90_plus": "Roads & Mobility share of 90+", "is_complete": "Complete month",
+    "within_benchmark_share": "Within benchmark", "open_90_plus": "Open 90+ days",
+    "roads_share_of_90_plus": "Roads & Mobility share", "is_complete": "Complete month",
     "requests_ly": "Requests, year before", "within_benchmark_share_ly": "Closed within benchmark, year before",
     "open_90_plus_ly": "Open 90+ days, year before", "roads_share_of_90_plus_ly": "Roads & Mobility share, year before",
     "request_month": "Month", "snow_requests": "Snow requests", "snowfall_cm": "Snowfall (cm)", "day": "Day",
@@ -70,7 +71,7 @@ CALCS = {
          f"{CATEGORY_RULE} AND [age_band] = {P_AGE} AND [request_type] = {P_TYPE} AND {MONTH_RULE}", ""),
         # MIN, not SUM: population repeats on every row of a community. Rate is meaningful per community only.
         ("Calculation_open", "Open (count or per 1,000)", "real", "measure", "quantitative",
-         f"IF {P_PERCAP} THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END", "n#,##0.#"),
+         f"IF {P_PERCAP} THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END", "n#,##0"),
         ("Calculation_keep_allages", "Keep row (all days open)", "boolean", "dimension", "nominal",
          f"{CATEGORY_RULE} AND [request_type] = {P_TYPE} AND {MONTH_RULE}", ""),
         ("Calculation_pair", "Community and request type", "string", "dimension", "nominal",
@@ -102,11 +103,13 @@ CALCS = {
          "[month] = {FIXED : MAX(IF [is_complete] THEN [month] END)}", ""),
         ("Calculation_latest_stock", "Latest month end", "boolean", "dimension", "nominal",
          "[month] = {FIXED : MAX(IF NOT ISNULL([open_90_plus]) THEN [month] END)}", ""),
-        ("Calculation_requests_yoy", "Requests vs year before", "real", "measure", "quantitative",
+        ("Calculation_has_stock", "Has month-end stock", "boolean", "dimension", "nominal",
+         "NOT ISNULL([open_90_plus])", ""),
+        ("Calculation_requests_yoy", "vs last year", "real", "measure", "quantitative",
          "SUM([requests]) / SUM([requests_ly]) - 1", "p+0%;-0%;0%"),
-        ("Calculation_share_yoy", "Benchmark share vs year before (points)", "real", "measure", "quantitative",
+        ("Calculation_share_yoy", "pts vs last year", "real", "measure", "quantitative",
          "(SUM([within_benchmark_share]) - SUM([within_benchmark_share_ly])) * 100", "n+0.0;-0.0;0"),
-        ("Calculation_stock_yoy", "Open 90+ vs year before", "real", "measure", "quantitative",
+        ("Calculation_stock_yoy", "vs last year ", "real", "measure", "quantitative",
          "SUM([open_90_plus]) / SUM([open_90_plus_ly]) - 1", "p+0%;-0%;0%"),
         ("Calculation_share_shown", "Closed within benchmark (complete months)", "real", "measure", "quantitative",
          "IF ATTR([is_complete]) THEN SUM([within_benchmark_share]) END", "p0%"),
@@ -181,8 +184,15 @@ def datasource(sid: str, exports: Path, extracts: Path) -> str:
         role, typ = ("measure", "quantitative") if dt in {"integer", "real"} else ("dimension", "ordinal" if dt == "date" else "nominal")
         cap = f" caption={quoteattr(CAPTIONS[c])}" if c in CAPTIONS else ""
         fmt = " default-format='p0%'" if c in PERCENT else (" default-format='n#,##0'" if dt == "integer" else "")
+        if sid == "svc" and c == "open_requests":
+            fmt = " default-format='n#,##0;-#,##0;'"
         meta.append(f"    <column{cap}{fmt} datatype='{dt}' name='[{c}]' role='{role}' type='{typ}' />")
     meta += [f"    {calc_column(sid, c[0])}" for c in CALCS.get(sid, [])]
+    ds_style = ""
+    if sid == "cm":  # period colours: reference years grey, assessed years blue (schema: after <extract>)
+        ds_style = (f"  <style><style-rule element='mark'><encoding attr='color' field='[none:Calculation_period:nk]' "
+                    f"type='palette'><map to='{MUTED}'><bucket>&quot;2022-2024&quot;</bucket></map>"
+                    f"<map to='{ACCENT}'><bucket>&quot;2025 on&quot;</bucket></map></encoding></style-rule></style>\n")
     return f"""  <datasource caption={quoteattr(caption)} inline='true' name='{ds_name(sid)}' version='18.1'>
     <connection class='federated'>
       <named-connections>
@@ -202,7 +212,7 @@ def datasource(sid: str, exports: Path, extracts: Path) -> str:
       <relation name='Extract' table='[Extract].[Extract]' type='table' />
     </connection>
   </extract>
-  </datasource>"""
+{ds_style}  </datasource>"""
 
 
 def inst(sid: str, col: str, deriv: str, kind: str) -> tuple[str, str]:
@@ -224,12 +234,78 @@ def member_filter(sid: str, col: str, value: str) -> tuple[str, str, str]:
     return ref, decl, f
 
 
+ACCENT, RISE, MUTED = "#2C7FC4", "#E8762C", "#B0B7BF"
+# No grid lines, no field-name headers: titles and labels carry the meaning.
+CLEAN = ("<style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule>"
+         "<style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule>"
+         "<style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' />"
+         "<format attr='display-field-labels' scope='cols' value='false' /></style-rule>")
+
+
+# Text tiles: one wide cell, otherwise Tableau keeps a narrow default cell and prints ###.
+TILE = ("<style-rule element='cell'><format attr='width' value='560' /><format attr='height' value='48' />"
+        "<format attr='text-align' value='left' /></style-rule>")
+
+
+def mark_style(color: str | None = None, labels: bool = False, extra: str = "") -> str:
+    fmt = (f"<format attr='mark-color' value='{color}' />" if color else "") + (
+        "<format attr='mark-labels-show' value='true' />" if labels else "")
+    return f"<style-rule element='mark'>{fmt}{extra}</style-rule>"
+
+
+def hide_axis(field: str, scope: str) -> str:
+    return (f"<style-rule element='axis'><format attr='display' class='0' field='{field}' scope='{scope}' "
+            "value='false' /></style-rule>")
+
+
+def axis_untitled(field: str, scope: str) -> str:
+    return (f"<style-rule element='axis'><format attr='title' class='0' field='{field}' scope='{scope}' "
+            "value='' /></style-rule>")
+
+
+def header_width(field: str, px: int) -> str:
+    return f"<style-rule element='header'><format attr='width' field='{field}' value='{px}' /></style-rule>"
+
+
+def kpi_tile(sid: str, measures: list[str]) -> dict:
+    """KPI row: one cell per measure (Measure Names on columns, Measure Values as text), caption as header."""
+    names = f"[{ds_name(sid)}].[:Measure Names]"
+    members = "".join(f"<groupfilter function='member' level='[:Measure Names]' member={quoteattr(chr(34) + m + chr(34))} />"
+                      for m in measures)
+    filt = (f"\n<filter class='categorical' column='{names}'><groupfilter function='union' user:op='manual'>"
+            f"{members}</groupfilter></filter>")
+    style = ("<style-rule element='cell'><format attr='font-size' value='18' /><format attr='font-weight' value='bold' />"
+             "<format attr='color' value='#10263A' /><format attr='text-align' value='center' /></style-rule>"
+             "<style-rule element='header'><format attr='font-size' value='9' /><format attr='color' value='#5B6B7A' />"
+             "</style-rule>")
+    order = "".join(f"<bucket>{escape(chr(34) + m + chr(34))}</bucket>" for m in measures)
+    month, month_decl = inst(sid, "month", "Month-Trunc", "ok")
+    return {"cols": names, "rows": month, "extra_filters": filt, "style": style, "month_decl": month_decl,
+            "sorts": f"<sort class='manual' column='{names}' direction='ASC'><dictionary>{order}</dictionary></sort>",
+            "encodings": f"<encodings><text column='[{ds_name(sid)}].[Multiple Values]' /></encodings>"}
+
+
+def tile_args(measures: list[str], decls: list[str]) -> dict:
+    t = kpi_tile("kpi", measures)
+    t["decls"] = decls + [t.pop("month_decl")]
+    return t
+
+
+def big_number(parts: list[tuple[str, str]]) -> str:
+    """Text tile: each part is (field reference, caption after it), big number then small caption."""
+    runs = "".join(f"<run bold='true' fontcolor='#10263A' fontsize='16'>&lt;{f}&gt;</run>"
+                   f"<run fontcolor='#5B6B7A' fontsize='9'> {escape(c)}   </run>" for f, c in parts)
+    return f"<customized-label><formatted-text>{runs}</formatted-text></customized-label>"
+
+
 def worksheet(name: str, sid: str, *, rows: str, cols: str, decls: list[str], filters: list[tuple[str, str, str]],
-              mark: str, encodings: str = "", sorts: str = "", extra_filters: str = "", title: str | None = None) -> str:
+              mark: str, encodings: str = "", sorts: str = "", extra_filters: str = "", title: str | None = None,
+              style: str = "", label: str = "") -> str:
     all_decls = list(dict.fromkeys(decls + [f[1] for f in filters]))
     filt = "\n".join(f[2] for f in filters) + extra_filters
     slices = "".join(f"<column>{f[0]}</column>" for f in filters)
-    title_xml = (f"<layout-options><title><formatted-text><run>{escape(title)}</run></formatted-text></title></layout-options>"
+    title_xml = (f"<layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>{escape(title)}</run>"
+                 "</formatted-text></title></layout-options>"
                  if title else "")
     return f"""  <worksheet name={quoteattr(name)}>
     {title_xml}
@@ -244,12 +320,13 @@ def worksheet(name: str, sid: str, *, rows: str, cols: str, decls: list[str], fi
         {f'<slices>{slices}</slices>' if slices else ''}
         <aggregation value='true' />
       </view>
-      <style />
+      <style>{CLEAN}{style}</style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='{mark}' />
           {encodings}
+          {label}
         </pane>
       </panes>
       <rows>{rows}</rows>
@@ -310,7 +387,9 @@ def sheets() -> list[str]:
         extra_filters=top_filter("svc", "Calculation_pair", formula("svc", "Calculation_selected_band"), 25),
         sorts=f"<sort class='computed' column='{pair}' direction='DESC' using='{band_v}' />",
         mark="Square", encodings=f"<encodings><color column='{v}' /><text column='{v}' /></encodings>",
-        title="Where to send crews first: open requests by community and request type"))
+        style=mark_style(labels=True, extra=f"<encoding attr='color' field='{v}' palette='blue_10_0' type='interpolated' />")
+        + header_width(pair, 330),
+        title="Open requests by community and request type, by days open (top 25 in the selected band)"))
 
     # P3 Trend: top 25 increases over three months, selected band
     ch, _ = cinst("svc", "Calculation_change")
@@ -320,27 +399,33 @@ def sheets() -> list[str]:
         filters=[calc_filter("svc", "Calculation_keep", context=True)],
         extra_filters=top_filter("svc", "Calculation_pair", formula("svc", "Calculation_change"), 25),
         sorts=f"<sort class='computed' column='{pair}' direction='DESC' using='{ch}' />",
-        mark="Bar", encodings=f"<encodings><color column='{ch}' /></encodings>",
+        mark="Bar", style=mark_style(RISE, labels=True) + hide_axis(ch, "cols") + header_width(pair, 300),
         title="Fastest growing: change in open requests over three months"))
 
     # P5 Communities: selected measure (count or per 1,000) per community; the map uses the same fields
     cn, cnd = inst("svc", "comm_name", "None", "nk")
     op, _ = cinst("svc", "Calculation_open")
     out.append(worksheet(
-        "P5 Communities", "svc", rows=cn, cols=op, decls=svc_decls("Calculation_open") + [cnd],
+        "P5 Communities", "svc", rows=cn, cols=op,
+        decls=svc_decls("Calculation_open") + [cnd, inst("svc", "comm_code", "None", "nk")[1]],
         filters=[calc_filter("svc", "Calculation_keep", context=True)],
-        extra_filters=top_filter("svc", "comm_name", formula("svc", "Calculation_open"), 15),
+        extra_filters=top_filter("svc", "comm_name", formula("svc", "Calculation_open"), 15) + (
+            f"\n<filter class='categorical' column='[{ds_name('svc')}].[none:comm_code:nk]'><groupfilter function='except' "
+            "user:ui-domain='database' user:ui-enumeration='exclusive' user:ui-marker='enumerate'>"
+            "<groupfilter function='level-members' level='[none:comm_code:nk]' />"
+            "<groupfilter function='member' level='[none:comm_code:nk]' member='&quot;N/A&quot;' /></groupfilter></filter>"),
         sorts=f"<sort class='computed' column='{cn}' direction='DESC' using='{op}' />",
-        mark="Bar", title="Communities with the most open requests in the selected band"))
+        mark="Bar", style=mark_style(ACCENT, labels=True) + hide_axis(op, "cols") + header_width(cn, 200),
+        title="Communities with the most open requests in the selected band"))
 
     # P4 Stock headline (also used on the monthly screen): latest month end
     o90, o90d = inst("kpi", "open_90_plus", "Sum", "qk")
     rs, rsd = inst("kpi", "roads_share_of_90_plus", "Sum", "qk")
     syoy, syoyd = cinst("kpi", "Calculation_stock_yoy")
     out.append(worksheet(
-        "P4 Stock headline", "kpi", rows="", cols="", decls=[o90d, rsd] + syoyd,
+        "P4 Stock headline", "kpi",
         filters=[calc_filter("kpi", "Calculation_latest_stock")],
-        mark="Text", encodings=f"<encodings><text column='{o90}' /><text column='{syoy}' /><text column='{rs}' /></encodings>",
+        mark="Text", **tile_args([o90, syoy, rs], [o90d, rsd] + syoyd),
         title="Field requests open 90+ days, latest month end (all services)"))
 
     # M1 Flow headline: latest complete month
@@ -349,23 +434,24 @@ def sheets() -> list[str]:
     sh, shd = inst("kpi", "within_benchmark_share", "Sum", "qk")
     shy, shyd = cinst("kpi", "Calculation_share_yoy")
     out.append(worksheet(
-        "M1 Flow headline", "kpi", rows="", cols="", decls=[rqd, shd] + ryoyd + shyd,
+        "M1 Flow headline", "kpi",
         filters=[calc_filter("kpi", "Calculation_latest_complete")],
-        mark="Text",
-        encodings=(f"<encodings><text column='{rq}' /><text column='{ryoy}' /><text column='{sh}' />"
-                   f"<text column='{shy}' /></encodings>"),
+        mark="Text", **tile_args([rq, ryoy, sh, shy], [rqd, shd] + ryoyd + shyd),
         title="Requests and share closed within benchmark, latest complete month (all services)"))
 
     # M2 Stock trend
     mt, mtd = inst("kpi", "month", "Month-Trunc", "qk")
     out.append(worksheet(
-        "M2 Stock trend", "kpi", rows=o90, cols=mt, decls=[o90d, mtd], filters=[], mark="Line",
+        "M2 Stock trend", "kpi", rows=o90, cols=mt, decls=[o90d, mtd],
+        filters=[calc_filter("kpi", "Calculation_has_stock")], mark="Line",
+        style=mark_style(ACCENT) + axis_untitled(o90, "rows") + axis_untitled(mt, "cols"),
         title="Requests open 90+ days are at their highest level since 2022"))
 
     # M3 Benchmark trend: complete months only
-    ss, ssd = cinst("kpi", "Calculation_share_shown")
     out.append(worksheet(
-        "M3 Benchmark trend", "kpi", rows=ss, cols=mt, decls=ssd + [mtd], filters=[], mark="Line",
+        "M3 Benchmark trend", "kpi", rows=sh, cols=mt, decls=[shd, mtd],
+        filters=[member_filter("kpi", "is_complete", "true")], mark="Line",
+        style=mark_style(ACCENT) + axis_untitled(sh, "rows") + axis_untitled(mt, "cols"),
         title="Share of requests closed within their service benchmark, complete months"))
 
     # M4 Slipping services: 2022-2024 against 2025 on, one dot per period
@@ -381,6 +467,7 @@ def sheets() -> list[str]:
                        "member='%null%' /></groupfilter></filter>"),
         sorts=f"<sort class='computed' column='{cat}' direction='ASC' using='{pct}' />",
         mark="Circle", encodings=f"<encodings><color column='{per}' /></encodings>",
+        style=axis_untitled(pct, "cols"),
         title="Closed within own benchmark, 2022-2024 against 2025 on: only Fire slipped"))
 
 
@@ -393,7 +480,8 @@ def sheets() -> list[str]:
         "M5 Seasonality", "cm", rows=avg, cols=mo,
         decls=[calc_column("cm", "Calculation_monthtotal"), calc_column("cm", "Calculation_fullmonth"), avg_d, mod],
         filters=[member_filter("cm", "Calculation_fullmonth", "true")],
-        mark="Bar", title="Requests peak in June; February and December are the quietest months"))
+        mark="Bar", style=mark_style(ACCENT) + axis_untitled(avg, "rows") + axis_untitled(mo, "cols"),
+        title="Requests peak in June; February and December are the quietest months"))
 
     # M6 Snow: daily snow requests and snowfall, winter 2025-2026
     d, dd = inst("sn", "day", "Day-Trunc", "qk")
@@ -403,7 +491,7 @@ def sheets() -> list[str]:
            "<min>#2025-10-01#</min><max>#2026-04-30#</max></filter>")
     out.append(worksheet(
         "M6 Snow", "sn", rows=f"({sr} / {sf})", cols=d, decls=[srd, sfd, dd], filters=[],
-        extra_filters=win, mark="Bar",
+        extra_filters=win, mark="Bar", style=mark_style(ACCENT) + axis_untitled(d, "cols"),
         title="Snow requests (top) follow snowfall (bottom) by one to three days, winter 2025-2026"))
     return out
 
@@ -423,14 +511,49 @@ def data_date(exports: Path) -> str:
             "80th percentile time to close in 2022-2024. 'Closed' means closed in the system, not fixed.")
 
 
+# Dashboard zones: (kind, target, x, y, w, h) in 1/100000 of the canvas. kind: sheet or param.
+PARAM = {"Category": 1, "Age band": 2, "Request type": 3, "Month end": 4, "Per 1,000 residents": 5}
+LAYOUTS = {
+    # Priorities: filters and the stock headline on top; ranked table left; communities and trend right.
+    "Priorities": [
+        ("param", "Category", 0, 6500, 13000, 9000), ("param", "Age band", 13000, 6500, 10000, 9000),
+        ("param", "Request type", 23000, 6500, 10000, 9000), ("param", "Month end", 33000, 6500, 11000, 9000),
+        ("param", "Per 1,000 residents", 44000, 6500, 11000, 9000),
+        ("sheet", "P4 Stock headline", 55000, 6500, 45000, 9000),
+        ("sheet", "P2 Priority table", 0, 15500, 55000, 72500),
+        ("sheet", "P5 Communities", 55000, 15500, 45000, 35000),
+        ("sheet", "P3 Trend 3 months", 55000, 50500, 45000, 37500),
+    ],
+    # Monthly: two headline tiles, two trends, then services and seasonality, snow across the bottom.
+    "Monthly situation": [
+        ("param", "Category", 0, 6500, 14000, 9000),
+        ("sheet", "P4 Stock headline", 14000, 6500, 40000, 9000),
+        ("sheet", "M1 Flow headline", 54000, 6500, 46000, 9000),
+        ("sheet", "M2 Stock trend", 0, 15500, 50000, 25000),
+        ("sheet", "M3 Benchmark trend", 50000, 15500, 50000, 25000),
+        ("sheet", "M4 Slipping services", 0, 40500, 50000, 27500),
+        ("sheet", "M5 Seasonality", 50000, 40500, 50000, 27500),
+        ("sheet", "M6 Snow", 0, 68000, 100000, 28000),
+    ],
+}
+
+
 def dashboard(name: str, title: str, notes: list[str]) -> str:
-    """Empty canvas with the fixed texts; sheets are placed by hand (see the build guide)."""
     zones = [f"<zone h='6000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text>"
-             f"<run bold='true' fontsize='16'>{escape(title)}</run></formatted-text></zone>"]
+             f"<run bold='true' fontcolor='#10263A' fontsize='16'>{escape(title)}</run></formatted-text></zone>"]
+    zid = 3
+    for kind, target, x, y, w, h in LAYOUTS[name]:
+        if kind == "param":
+            zones.append(f"<zone h='{h}' id='{zid}' mode='compact' param='[Parameters].[Parameter {PARAM[target]}]' "
+                         f"type-v2='paramctrl' w='{w}' x='{x}' y='{y}' />")
+        else:
+            shown = "false" if "headline" in target else "true"
+            zones.append(f"<zone h='{h}' id='{zid}' name={quoteattr(target)} show-title='{shown}' w='{w}' x='{x}' y='{y}' />")
+        zid += 1
     y = 100000 - 4000 * len(notes)
     for i, note in enumerate(notes):
-        zones.append(f"<zone h='4000' id='{3 + i}' type-v2='text' w='100000' x='0' y='{y + 4000 * i}'><formatted-text>"
-                     f"<run fontsize='8'>{escape(note)}</run></formatted-text></zone>")
+        zones.append(f"<zone h='4000' id='{zid + i}' type-v2='text' w='100000' x='0' y='{y + 4000 * i}'><formatted-text>"
+                     f"<run fontcolor='#5B6B7A' fontsize='8'>{escape(note)}</run></formatted-text></zone>")
     return f"""  <dashboard name={quoteattr(name)}>
     <style />
     <size maxheight='900' maxwidth='1300' minheight='900' minwidth='1300' sizing-mode='fixed' />
@@ -440,6 +563,12 @@ def dashboard(name: str, title: str, notes: list[str]) -> str:
       </zone>
     </zones>
   </dashboard>"""
+
+
+def dashboard_window(name: str) -> str:
+    views = "".join(f"<viewpoint name={quoteattr(t)}><zoom type='entire-view' /></viewpoint>" if t == "P2 Priority table" or "headline" in t
+                    else f"<viewpoint name={quoteattr(t)} />" for k, t, *_ in LAYOUTS[name] if k == "sheet")
+    return f"    <window class='dashboard' maximized='true' name={quoteattr(name)}><viewpoints>{views}</viewpoints><active id='-1' /></window>"
 
 
 def build(exports: Path, extracts: Path) -> str:
@@ -453,7 +582,7 @@ def build(exports: Path, extracts: Path) -> str:
     cards = ("<cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' />"
              "</strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip>"
              "<strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards>")
-    windows = "\n".join([f"    <window class='dashboard' name={quoteattr(n)}><viewpoints /><active id='-1' /></window>" for n in ("Priorities", "Monthly situation")]
+    windows = "\n".join([dashboard_window(n) for n in ("Priorities", "Monthly situation")]
                         + [f"    <window class='worksheet' name={quoteattr(n)}>{cards}</window>" for n in names])
     return f"""<?xml version='1.0' encoding='utf-8' ?>
 <workbook original-version='18.1' source-build='2026.3.0' source-platform='win' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
