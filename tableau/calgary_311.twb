@@ -54,11 +54,11 @@
     <column caption="Community code" datatype='string' name='[comm_code]' role='dimension' type='nominal' />
     <column caption="Community" datatype='string' name='[comm_name]' role='dimension' type='nominal' />
     <column caption="Days open" datatype='string' name='[age_band]' role='dimension' type='nominal' />
-    <column caption="Open requests" default-format='n#,##0' datatype='integer' name='[open_requests]' role='measure' type='quantitative' />
+    <column caption="Open requests" default-format='n#,##0;-#,##0;' datatype='integer' name='[open_requests]' role='measure' type='quantitative' />
     <column caption="Open requests 3 months earlier" default-format='n#,##0' datatype='integer' name='[open_3m_earlier]' role='measure' type='quantitative' />
     <column caption="Population (2019)" default-format='n#,##0' datatype='integer' name='[population_2019]' role='measure' type='quantitative' />
     <column caption="Keep row" datatype='boolean' name='[Calculation_keep]' role='dimension' type='nominal'><calculation class='tableau' formula="([Parameters].[Parameter 1] = 'All' OR [service_category] = [Parameters].[Parameter 1]) AND [age_band] = [Parameters].[Parameter 2] AND [request_type] = [Parameters].[Parameter 3] AND ([month_end] = IF [Parameters].[Parameter 4] = 'Latest' THEN {FIXED : MAX([month_end])} ELSE DATE([Parameters].[Parameter 4]) END)" /></column>
-    <column caption="Open (count or per 1,000)" default-format="n#,##0.#" datatype='real' name='[Calculation_open]' role='measure' type='quantitative'><calculation class='tableau' formula="IF [Parameters].[Parameter 5] THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END" /></column>
+    <column caption="Open (count or per 1,000)" default-format="n#,##0" datatype='real' name='[Calculation_open]' role='measure' type='quantitative'><calculation class='tableau' formula="IF [Parameters].[Parameter 5] THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END" /></column>
     <column caption="Keep row (all days open)" datatype='boolean' name='[Calculation_keep_allages]' role='dimension' type='nominal'><calculation class='tableau' formula="([Parameters].[Parameter 1] = 'All' OR [service_category] = [Parameters].[Parameter 1]) AND [request_type] = [Parameters].[Parameter 3] AND ([month_end] = IF [Parameters].[Parameter 4] = 'Latest' THEN {FIXED : MAX([month_end])} ELSE DATE([Parameters].[Parameter 4]) END)" /></column>
     <column caption="Community and request type" datatype='string' name='[Calculation_pair]' role='dimension' type='nominal'><calculation class='tableau' formula="[comm_name] + ' - ' + [service_name]" /></column>
     <column caption="Open in selected days-open band" default-format="n#,##0" datatype='integer' name='[Calculation_selected_band]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM(IF [age_band] = [Parameters].[Parameter 2] THEN [open_requests] END)" /></column>
@@ -94,9 +94,9 @@
     </connection>
     <column caption="Month" datatype='date' name='[month]' role='dimension' type='ordinal' />
     <column caption="Requests" default-format='n#,##0' datatype='integer' name='[requests]' role='measure' type='quantitative' />
-    <column caption="Closed within benchmark" default-format='p0%' datatype='real' name='[within_benchmark_share]' role='measure' type='quantitative' />
+    <column caption="Within benchmark" default-format='p0%' datatype='real' name='[within_benchmark_share]' role='measure' type='quantitative' />
     <column caption="Open 90+ days" default-format='n#,##0' datatype='integer' name='[open_90_plus]' role='measure' type='quantitative' />
-    <column caption="Roads &amp; Mobility share of 90+" default-format='p0%' datatype='real' name='[roads_share_of_90_plus]' role='measure' type='quantitative' />
+    <column caption="Roads &amp; Mobility share" default-format='p0%' datatype='real' name='[roads_share_of_90_plus]' role='measure' type='quantitative' />
     <column caption="Complete month" datatype='boolean' name='[is_complete]' role='dimension' type='nominal' />
     <column caption="Requests, year before" default-format='n#,##0' datatype='integer' name='[requests_ly]' role='measure' type='quantitative' />
     <column caption="Closed within benchmark, year before" default-format='p0%' datatype='real' name='[within_benchmark_share_ly]' role='measure' type='quantitative' />
@@ -104,9 +104,10 @@
     <column caption="Roads &amp; Mobility share, year before" default-format='p0%' datatype='real' name='[roads_share_of_90_plus_ly]' role='measure' type='quantitative' />
     <column caption="Latest complete month" datatype='boolean' name='[Calculation_latest_complete]' role='dimension' type='nominal'><calculation class='tableau' formula="[month] = {FIXED : MAX(IF [is_complete] THEN [month] END)}" /></column>
     <column caption="Latest month end" datatype='boolean' name='[Calculation_latest_stock]' role='dimension' type='nominal'><calculation class='tableau' formula="[month] = {FIXED : MAX(IF NOT ISNULL([open_90_plus]) THEN [month] END)}" /></column>
-    <column caption="Requests vs year before" default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_requests_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([requests]) / SUM([requests_ly]) - 1" /></column>
-    <column caption="Benchmark share vs year before (points)" default-format="n+0.0;-0.0;0" datatype='real' name='[Calculation_share_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="(SUM([within_benchmark_share]) - SUM([within_benchmark_share_ly])) * 100" /></column>
-    <column caption="Open 90+ vs year before" default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_stock_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([open_90_plus]) / SUM([open_90_plus_ly]) - 1" /></column>
+    <column caption="Has month-end stock" datatype='boolean' name='[Calculation_has_stock]' role='dimension' type='nominal'><calculation class='tableau' formula="NOT ISNULL([open_90_plus])" /></column>
+    <column caption="vs last year" default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_requests_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([requests]) / SUM([requests_ly]) - 1" /></column>
+    <column caption="pts vs last year" default-format="n+0.0;-0.0;0" datatype='real' name='[Calculation_share_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="(SUM([within_benchmark_share]) - SUM([within_benchmark_share_ly])) * 100" /></column>
+    <column caption="vs last year " default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_stock_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([open_90_plus]) / SUM([open_90_plus_ly]) - 1" /></column>
     <column caption="Closed within benchmark (complete months)" default-format="p0%" datatype='real' name='[Calculation_share_shown]' role='measure' type='quantitative'><calculation class='tableau' formula="IF ATTR([is_complete]) THEN SUM([within_benchmark_share]) END" /></column>
   <extract count='-1' enabled='true' units='records'>
     <connection access_mode='readonly' author-locale='en_US' class='hyper' dbname="C:/Users/NelsonX16/Dev/projects/GitHub/Projet-311/calgary-311-service-performance/data/processed/extracts/kpi.hyper" default-settings='hyper' schema='Extract' sslmode='' tablename='Extract' username='tableau'>
@@ -158,6 +159,7 @@
       <relation name='Extract' table='[Extract].[Extract]' type='table' />
     </connection>
   </extract>
+  <style><style-rule element='mark'><encoding attr='color' field='[none:Calculation_period:nk]' type='palette'><map to='#B0B7BF'><bucket>&quot;2022-2024&quot;</bucket></map><map to='#2C7FC4'><bucket>&quot;2025 on&quot;</bucket></map></encoding></style-rule></style>
   </datasource>
   <datasource caption="Snow" inline='true' name='federated.sn' version='18.1'>
     <connection class='federated'>
@@ -190,7 +192,7 @@
   </datasources>
   <worksheets>
   <worksheet name="P2 Priority table">
-    <layout-options><title><formatted-text><run>Where to send crews first: open requests by community and request type</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Open requests by community and request type, by days open (top 25 in the selected band)</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Operations backlog" name='federated.svc' /><datasource name='Parameters' /></datasources>
@@ -211,12 +213,13 @@
         <slices><column>[federated.svc].[none:Calculation_keep_allages:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-labels-show' value='true' /><encoding attr='color' field='[federated.svc].[sum:open_requests:qk]' palette='blue_10_0' type='interpolated' /></style-rule><style-rule element='header'><format attr='width' field='[federated.svc].[none:Calculation_pair:nk]' value='330' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Square' />
           <encodings><color column='[federated.svc].[sum:open_requests:qk]' /><text column='[federated.svc].[sum:open_requests:qk]' /></encodings>
+          
         </pane>
       </panes>
       <rows>[federated.svc].[none:Calculation_pair:nk]</rows>
@@ -224,7 +227,7 @@
     </table>
   </worksheet>
   <worksheet name="P3 Trend 3 months">
-    <layout-options><title><formatted-text><run>Fastest growing: change in open requests over three months</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Fastest growing: change in open requests over three months</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Operations backlog" name='federated.svc' /><datasource name='Parameters' /></datasources>
@@ -243,12 +246,13 @@
         <slices><column>[federated.svc].[none:Calculation_keep:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-color' value='#E8762C' /><format attr='mark-labels-show' value='true' /></style-rule><style-rule element='axis'><format attr='display' class='0' field='[federated.svc].[usr:Calculation_change:qk]' scope='cols' value='false' /></style-rule><style-rule element='header'><format attr='width' field='[federated.svc].[none:Calculation_pair:nk]' value='300' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Bar' />
-          <encodings><color column='[federated.svc].[usr:Calculation_change:qk]' /></encodings>
+          
+          
         </pane>
       </panes>
       <rows>[federated.svc].[none:Calculation_pair:nk]</rows>
@@ -256,29 +260,32 @@
     </table>
   </worksheet>
   <worksheet name="P5 Communities">
-    <layout-options><title><formatted-text><run>Communities with the most open requests in the selected band</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Communities with the most open requests in the selected band</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Operations backlog" name='federated.svc' /><datasource name='Parameters' /></datasources>
         <datasource-dependencies datasource='federated.svc'>
-          <column caption="Open (count or per 1,000)" default-format="n#,##0.#" datatype='real' name='[Calculation_open]' role='measure' type='quantitative'><calculation class='tableau' formula="IF [Parameters].[Parameter 5] THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END" /></column>
+          <column caption="Open (count or per 1,000)" default-format="n#,##0" datatype='real' name='[Calculation_open]' role='measure' type='quantitative'><calculation class='tableau' formula="IF [Parameters].[Parameter 5] THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END" /></column>
 <column-instance column='[Calculation_open]' derivation='User' name='[usr:Calculation_open:qk]' pivot='key' type='quantitative' />
 <column-instance column='[comm_name]' derivation='None' name='[none:comm_name:nk]' pivot='key' type='nominal' />
+<column-instance column='[comm_code]' derivation='None' name='[none:comm_code:nk]' pivot='key' type='nominal' />
 <column caption="Keep row" datatype='boolean' name='[Calculation_keep]' role='dimension' type='nominal'><calculation class='tableau' formula="([Parameters].[Parameter 1] = 'All' OR [service_category] = [Parameters].[Parameter 1]) AND [age_band] = [Parameters].[Parameter 2] AND [request_type] = [Parameters].[Parameter 3] AND ([month_end] = IF [Parameters].[Parameter 4] = 'Latest' THEN {FIXED : MAX([month_end])} ELSE DATE([Parameters].[Parameter 4]) END)" /></column><column-instance column='[Calculation_keep]' derivation='None' name='[none:Calculation_keep:nk]' pivot='key' type='nominal' />
         </datasource-dependencies>
         <filter class='categorical' context='true' column='[federated.svc].[none:Calculation_keep:nk]'>
   <groupfilter function='member' level='[none:Calculation_keep:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
 </filter>
 <filter class='categorical' column='[federated.svc].[none:comm_name:nk]'><groupfilter count='15' end='top' function='end' units='records' user:ui-marker='end' user:ui-top-by-field='true'><groupfilter direction='DESC' expression="IF [Parameters].[Parameter 5] THEN SUM([open_requests]) / MIN([population_2019]) * 1000 ELSE SUM([open_requests]) END" function='order' user:ui-marker='order'><groupfilter function='level-members' level='[none:comm_name:nk]' user:ui-enumeration='all' user:ui-marker='enumerate' /></groupfilter></groupfilter></filter>
+<filter class='categorical' column='[federated.svc].[none:comm_code:nk]'><groupfilter function='except' user:ui-domain='database' user:ui-enumeration='exclusive' user:ui-marker='enumerate'><groupfilter function='level-members' level='[none:comm_code:nk]' /><groupfilter function='member' level='[none:comm_code:nk]' member='&quot;N/A&quot;' /></groupfilter></filter>
         <sort class='computed' column='[federated.svc].[none:comm_name:nk]' direction='DESC' using='[federated.svc].[usr:Calculation_open:qk]' />
         <slices><column>[federated.svc].[none:Calculation_keep:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-color' value='#2C7FC4' /><format attr='mark-labels-show' value='true' /></style-rule><style-rule element='axis'><format attr='display' class='0' field='[federated.svc].[usr:Calculation_open:qk]' scope='cols' value='false' /></style-rule><style-rule element='header'><format attr='width' field='[federated.svc].[none:comm_name:nk]' value='200' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Bar' />
+          
           
         </pane>
       </panes>
@@ -287,88 +294,98 @@
     </table>
   </worksheet>
   <worksheet name="P4 Stock headline">
-    <layout-options><title><formatted-text><run>Field requests open 90+ days, latest month end (all services)</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Field requests open 90+ days, latest month end (all services)</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Monthly KPIs" name='federated.kpi' /><datasource name='Parameters' /></datasources>
         <datasource-dependencies datasource='federated.kpi'>
           <column-instance column='[open_90_plus]' derivation='Sum' name='[sum:open_90_plus:qk]' pivot='key' type='quantitative' />
 <column-instance column='[roads_share_of_90_plus]' derivation='Sum' name='[sum:roads_share_of_90_plus:qk]' pivot='key' type='quantitative' />
-<column caption="Open 90+ vs year before" default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_stock_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([open_90_plus]) / SUM([open_90_plus_ly]) - 1" /></column>
+<column caption="vs last year " default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_stock_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([open_90_plus]) / SUM([open_90_plus_ly]) - 1" /></column>
 <column-instance column='[Calculation_stock_yoy]' derivation='User' name='[usr:Calculation_stock_yoy:qk]' pivot='key' type='quantitative' />
+<column-instance column='[month]' derivation='Month-Trunc' name='[tmn:month:ok]' pivot='key' type='ordinal' />
 <column caption="Latest month end" datatype='boolean' name='[Calculation_latest_stock]' role='dimension' type='nominal'><calculation class='tableau' formula="[month] = {FIXED : MAX(IF NOT ISNULL([open_90_plus]) THEN [month] END)}" /></column><column-instance column='[Calculation_latest_stock]' derivation='None' name='[none:Calculation_latest_stock:nk]' pivot='key' type='nominal' />
         </datasource-dependencies>
         <filter class='categorical' column='[federated.kpi].[none:Calculation_latest_stock:nk]'>
   <groupfilter function='member' level='[none:Calculation_latest_stock:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
 </filter>
-        
+<filter class='categorical' column='[federated.kpi].[:Measure Names]'><groupfilter function='union' user:op='manual'><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[sum:open_90_plus:qk]"' /><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[usr:Calculation_stock_yoy:qk]"' /><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[sum:roads_share_of_90_plus:qk]"' /></groupfilter></filter>
+        <sort class='manual' column='[federated.kpi].[:Measure Names]' direction='ASC'><dictionary><bucket>"[federated.kpi].[sum:open_90_plus:qk]"</bucket><bucket>"[federated.kpi].[usr:Calculation_stock_yoy:qk]"</bucket><bucket>"[federated.kpi].[sum:roads_share_of_90_plus:qk]"</bucket></dictionary></sort>
         <slices><column>[federated.kpi].[none:Calculation_latest_stock:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='cell'><format attr='font-size' value='18' /><format attr='font-weight' value='bold' /><format attr='color' value='#10263A' /><format attr='text-align' value='center' /></style-rule><style-rule element='header'><format attr='font-size' value='9' /><format attr='color' value='#5B6B7A' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Text' />
-          <encodings><text column='[federated.kpi].[sum:open_90_plus:qk]' /><text column='[federated.kpi].[usr:Calculation_stock_yoy:qk]' /><text column='[federated.kpi].[sum:roads_share_of_90_plus:qk]' /></encodings>
+          <encodings><text column='[federated.kpi].[Multiple Values]' /></encodings>
+          
         </pane>
       </panes>
-      <rows></rows>
-      <cols></cols>
+      <rows>[federated.kpi].[tmn:month:ok]</rows>
+      <cols>[federated.kpi].[:Measure Names]</cols>
     </table>
   </worksheet>
   <worksheet name="M1 Flow headline">
-    <layout-options><title><formatted-text><run>Requests and share closed within benchmark, latest complete month (all services)</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Requests and share closed within benchmark, latest complete month (all services)</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Monthly KPIs" name='federated.kpi' /><datasource name='Parameters' /></datasources>
         <datasource-dependencies datasource='federated.kpi'>
           <column-instance column='[requests]' derivation='Sum' name='[sum:requests:qk]' pivot='key' type='quantitative' />
 <column-instance column='[within_benchmark_share]' derivation='Sum' name='[sum:within_benchmark_share:qk]' pivot='key' type='quantitative' />
-<column caption="Requests vs year before" default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_requests_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([requests]) / SUM([requests_ly]) - 1" /></column>
+<column caption="vs last year" default-format="p+0%;-0%;0%" datatype='real' name='[Calculation_requests_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="SUM([requests]) / SUM([requests_ly]) - 1" /></column>
 <column-instance column='[Calculation_requests_yoy]' derivation='User' name='[usr:Calculation_requests_yoy:qk]' pivot='key' type='quantitative' />
-<column caption="Benchmark share vs year before (points)" default-format="n+0.0;-0.0;0" datatype='real' name='[Calculation_share_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="(SUM([within_benchmark_share]) - SUM([within_benchmark_share_ly])) * 100" /></column>
+<column caption="pts vs last year" default-format="n+0.0;-0.0;0" datatype='real' name='[Calculation_share_yoy]' role='measure' type='quantitative'><calculation class='tableau' formula="(SUM([within_benchmark_share]) - SUM([within_benchmark_share_ly])) * 100" /></column>
 <column-instance column='[Calculation_share_yoy]' derivation='User' name='[usr:Calculation_share_yoy:qk]' pivot='key' type='quantitative' />
+<column-instance column='[month]' derivation='Month-Trunc' name='[tmn:month:ok]' pivot='key' type='ordinal' />
 <column caption="Latest complete month" datatype='boolean' name='[Calculation_latest_complete]' role='dimension' type='nominal'><calculation class='tableau' formula="[month] = {FIXED : MAX(IF [is_complete] THEN [month] END)}" /></column><column-instance column='[Calculation_latest_complete]' derivation='None' name='[none:Calculation_latest_complete:nk]' pivot='key' type='nominal' />
         </datasource-dependencies>
         <filter class='categorical' column='[federated.kpi].[none:Calculation_latest_complete:nk]'>
   <groupfilter function='member' level='[none:Calculation_latest_complete:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
 </filter>
-        
+<filter class='categorical' column='[federated.kpi].[:Measure Names]'><groupfilter function='union' user:op='manual'><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[sum:requests:qk]"' /><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[usr:Calculation_requests_yoy:qk]"' /><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[sum:within_benchmark_share:qk]"' /><groupfilter function='member' level='[:Measure Names]' member='"[federated.kpi].[usr:Calculation_share_yoy:qk]"' /></groupfilter></filter>
+        <sort class='manual' column='[federated.kpi].[:Measure Names]' direction='ASC'><dictionary><bucket>"[federated.kpi].[sum:requests:qk]"</bucket><bucket>"[federated.kpi].[usr:Calculation_requests_yoy:qk]"</bucket><bucket>"[federated.kpi].[sum:within_benchmark_share:qk]"</bucket><bucket>"[federated.kpi].[usr:Calculation_share_yoy:qk]"</bucket></dictionary></sort>
         <slices><column>[federated.kpi].[none:Calculation_latest_complete:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='cell'><format attr='font-size' value='18' /><format attr='font-weight' value='bold' /><format attr='color' value='#10263A' /><format attr='text-align' value='center' /></style-rule><style-rule element='header'><format attr='font-size' value='9' /><format attr='color' value='#5B6B7A' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Text' />
-          <encodings><text column='[federated.kpi].[sum:requests:qk]' /><text column='[federated.kpi].[usr:Calculation_requests_yoy:qk]' /><text column='[federated.kpi].[sum:within_benchmark_share:qk]' /><text column='[federated.kpi].[usr:Calculation_share_yoy:qk]' /></encodings>
+          <encodings><text column='[federated.kpi].[Multiple Values]' /></encodings>
+          
         </pane>
       </panes>
-      <rows></rows>
-      <cols></cols>
+      <rows>[federated.kpi].[tmn:month:ok]</rows>
+      <cols>[federated.kpi].[:Measure Names]</cols>
     </table>
   </worksheet>
   <worksheet name="M2 Stock trend">
-    <layout-options><title><formatted-text><run>Requests open 90+ days are at their highest level since 2022</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Requests open 90+ days are at their highest level since 2022</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Monthly KPIs" name='federated.kpi' /><datasource name='Parameters' /></datasources>
         <datasource-dependencies datasource='federated.kpi'>
           <column-instance column='[open_90_plus]' derivation='Sum' name='[sum:open_90_plus:qk]' pivot='key' type='quantitative' />
 <column-instance column='[month]' derivation='Month-Trunc' name='[tmn:month:qk]' pivot='key' type='quantitative' />
+<column caption="Has month-end stock" datatype='boolean' name='[Calculation_has_stock]' role='dimension' type='nominal'><calculation class='tableau' formula="NOT ISNULL([open_90_plus])" /></column><column-instance column='[Calculation_has_stock]' derivation='None' name='[none:Calculation_has_stock:nk]' pivot='key' type='nominal' />
         </datasource-dependencies>
+        <filter class='categorical' column='[federated.kpi].[none:Calculation_has_stock:nk]'>
+  <groupfilter function='member' level='[none:Calculation_has_stock:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
+</filter>
         
-        
-        
+        <slices><column>[federated.kpi].[none:Calculation_has_stock:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-color' value='#2C7FC4' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.kpi].[sum:open_90_plus:qk]' scope='rows' value='' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.kpi].[tmn:month:qk]' scope='cols' value='' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Line' />
+          
           
         </pane>
       </panes>
@@ -377,34 +394,37 @@
     </table>
   </worksheet>
   <worksheet name="M3 Benchmark trend">
-    <layout-options><title><formatted-text><run>Share of requests closed within their service benchmark, complete months</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Share of requests closed within their service benchmark, complete months</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Monthly KPIs" name='federated.kpi' /><datasource name='Parameters' /></datasources>
         <datasource-dependencies datasource='federated.kpi'>
-          <column caption="Closed within benchmark (complete months)" default-format="p0%" datatype='real' name='[Calculation_share_shown]' role='measure' type='quantitative'><calculation class='tableau' formula="IF ATTR([is_complete]) THEN SUM([within_benchmark_share]) END" /></column>
-<column-instance column='[Calculation_share_shown]' derivation='User' name='[usr:Calculation_share_shown:qk]' pivot='key' type='quantitative' />
+          <column-instance column='[within_benchmark_share]' derivation='Sum' name='[sum:within_benchmark_share:qk]' pivot='key' type='quantitative' />
 <column-instance column='[month]' derivation='Month-Trunc' name='[tmn:month:qk]' pivot='key' type='quantitative' />
+<column-instance column='[is_complete]' derivation='None' name='[none:is_complete:nk]' pivot='key' type='nominal' />
         </datasource-dependencies>
+        <filter class='categorical' column='[federated.kpi].[none:is_complete:nk]'>
+  <groupfilter function='member' level='[none:is_complete:nk]' member='true' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
+</filter>
         
-        
-        
+        <slices><column>[federated.kpi].[none:is_complete:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-color' value='#2C7FC4' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.kpi].[sum:within_benchmark_share:qk]' scope='rows' value='' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.kpi].[tmn:month:qk]' scope='cols' value='' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Line' />
           
+          
         </pane>
       </panes>
-      <rows>[federated.kpi].[usr:Calculation_share_shown:qk]</rows>
+      <rows>[federated.kpi].[sum:within_benchmark_share:qk]</rows>
       <cols>[federated.kpi].[tmn:month:qk]</cols>
     </table>
   </worksheet>
   <worksheet name="M4 Slipping services">
-    <layout-options><title><formatted-text><run>Closed within own benchmark, 2022-2024 against 2025 on: only Fire slipped</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Closed within own benchmark, 2022-2024 against 2025 on: only Fire slipped</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Timeliness" name='federated.cm' /><datasource name='Parameters' /></datasources>
@@ -424,12 +444,13 @@
         <slices><column>[federated.cm].[none:Calculation_keep:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.cm].[usr:Calculation_pct:qk]' scope='cols' value='' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Circle' />
           <encodings><color column='[federated.cm].[none:Calculation_period:nk]' /></encodings>
+          
         </pane>
       </panes>
       <rows>[federated.cm].[none:service_category:nk]</rows>
@@ -437,7 +458,7 @@
     </table>
   </worksheet>
   <worksheet name="M5 Seasonality">
-    <layout-options><title><formatted-text><run>Requests peak in June; February and December are the quietest months</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Requests peak in June; February and December are the quietest months</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Timeliness" name='federated.cm' /><datasource name='Parameters' /></datasources>
@@ -455,11 +476,12 @@
         <slices><column>[federated.cm].[none:Calculation_fullmonth:nk]</column></slices>
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-color' value='#2C7FC4' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.cm].[avg:Calculation_monthtotal:qk]' scope='rows' value='' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.cm].[mn:request_month:ok]' scope='cols' value='' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Bar' />
+          
           
         </pane>
       </panes>
@@ -468,7 +490,7 @@
     </table>
   </worksheet>
   <worksheet name="M6 Snow">
-    <layout-options><title><formatted-text><run>Snow requests (top) follow snowfall (bottom) by one to three days, winter 2025-2026</run></formatted-text></title></layout-options>
+    <layout-options><title><formatted-text><run bold='true' fontcolor='#10263A' fontsize='11'>Snow requests (top) follow snowfall (bottom) by one to three days, winter 2025-2026</run></formatted-text></title></layout-options>
     <table>
       <view>
         <datasources><datasource caption="Snow" name='federated.sn' /><datasource name='Parameters' /></datasources>
@@ -483,11 +505,12 @@
         
         <aggregation value='true' />
       </view>
-      <style />
+      <style><style-rule element='gridline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='zeroline'><format attr='line-visibility' value='off' /></style-rule><style-rule element='worksheet'><format attr='display-field-labels' scope='rows' value='false' /><format attr='display-field-labels' scope='cols' value='false' /></style-rule><style-rule element='mark'><format attr='mark-color' value='#2C7FC4' /></style-rule><style-rule element='axis'><format attr='title' class='0' field='[federated.sn].[tdy:day:qk]' scope='cols' value='' /></style-rule></style>
       <panes>
         <pane selection-relaxation-option='selection-relaxation-allow'>
           <view><breakdown value='auto' /></view>
           <mark class='Bar' />
+          
           
         </pane>
       </panes>
@@ -502,10 +525,19 @@
     <size maxheight='900' maxwidth='1300' minheight='900' minwidth='1300' sizing-mode='fixed' />
     <zones>
       <zone h='100000' id='1' type-v2='layout-basic' w='100000' x='0' y='0'>
-        <zone h='6000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text><run bold='true' fontsize='16'>Calgary 311: where to send crews first</run></formatted-text></zone>
-<zone h='4000' id='3' type-v2='text' w='100000' x='0' y='88000'><formatted-text><run fontsize='8'>Some requests open 90+ days may be records that were never closed in the system rather than work still waiting. Check a sample before sending a crew.</run></formatted-text></zone>
-<zone h='4000' id='4' type-v2='text' w='100000' x='0' y='92000'><formatted-text><run fontsize='8'>Population from the 2019 municipal census.</run></formatted-text></zone>
-<zone h='4000' id='5' type-v2='text' w='100000' x='0' y='96000'><formatted-text><run fontsize='8'>Backlog to 2026-10-31, requests to 2026-11-17. Source: City of Calgary Open Data (311 Service Requests iahh-g8bj, communities surr-xmvs), ECCC daily climate CALGARY INTL A. Benchmark: each service's own 80th percentile time to close in 2022-2024. 'Closed' means closed in the system, not fixed.</run></formatted-text></zone>
+        <zone h='6000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text><run bold='true' fontcolor='#10263A' fontsize='16'>Calgary 311: where to send crews first</run></formatted-text></zone>
+<zone h='9000' id='3' mode='compact' param='[Parameters].[Parameter 1]' type-v2='paramctrl' w='13000' x='0' y='6500' />
+<zone h='9000' id='4' mode='compact' param='[Parameters].[Parameter 2]' type-v2='paramctrl' w='10000' x='13000' y='6500' />
+<zone h='9000' id='5' mode='compact' param='[Parameters].[Parameter 3]' type-v2='paramctrl' w='10000' x='23000' y='6500' />
+<zone h='9000' id='6' mode='compact' param='[Parameters].[Parameter 4]' type-v2='paramctrl' w='11000' x='33000' y='6500' />
+<zone h='9000' id='7' mode='compact' param='[Parameters].[Parameter 5]' type-v2='paramctrl' w='11000' x='44000' y='6500' />
+<zone h='9000' id='8' name="P4 Stock headline" show-title='false' w='45000' x='55000' y='6500' />
+<zone h='72500' id='9' name="P2 Priority table" show-title='true' w='55000' x='0' y='15500' />
+<zone h='35000' id='10' name="P5 Communities" show-title='true' w='45000' x='55000' y='15500' />
+<zone h='37500' id='11' name="P3 Trend 3 months" show-title='true' w='45000' x='55000' y='50500' />
+<zone h='4000' id='12' type-v2='text' w='100000' x='0' y='88000'><formatted-text><run fontcolor='#5B6B7A' fontsize='8'>Some requests open 90+ days may be records that were never closed in the system rather than work still waiting. Check a sample before sending a crew.</run></formatted-text></zone>
+<zone h='4000' id='13' type-v2='text' w='100000' x='0' y='92000'><formatted-text><run fontcolor='#5B6B7A' fontsize='8'>Population from the 2019 municipal census.</run></formatted-text></zone>
+<zone h='4000' id='14' type-v2='text' w='100000' x='0' y='96000'><formatted-text><run fontcolor='#5B6B7A' fontsize='8'>Backlog to 2026-10-31, requests to 2026-11-17. Source: City of Calgary Open Data (311 Service Requests iahh-g8bj, communities surr-xmvs), ECCC daily climate CALGARY INTL A. Benchmark: each service's own 80th percentile time to close in 2022-2024. 'Closed' means closed in the system, not fixed.</run></formatted-text></zone>
       </zone>
     </zones>
   </dashboard>
@@ -514,15 +546,23 @@
     <size maxheight='900' maxwidth='1300' minheight='900' minwidth='1300' sizing-mode='fixed' />
     <zones>
       <zone h='100000' id='1' type-v2='layout-basic' w='100000' x='0' y='0'>
-        <zone h='6000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text><run bold='true' fontsize='16'>Calgary 311: monthly situation</run></formatted-text></zone>
-<zone h='4000' id='3' type-v2='text' w='100000' x='0' y='96000'><formatted-text><run fontsize='8'>Backlog to 2026-10-31, requests to 2026-11-17. Source: City of Calgary Open Data (311 Service Requests iahh-g8bj, communities surr-xmvs), ECCC daily climate CALGARY INTL A. Benchmark: each service's own 80th percentile time to close in 2022-2024. 'Closed' means closed in the system, not fixed.</run></formatted-text></zone>
+        <zone h='6000' id='2' type-v2='text' w='100000' x='0' y='0'><formatted-text><run bold='true' fontcolor='#10263A' fontsize='16'>Calgary 311: monthly situation</run></formatted-text></zone>
+<zone h='9000' id='3' mode='compact' param='[Parameters].[Parameter 1]' type-v2='paramctrl' w='14000' x='0' y='6500' />
+<zone h='9000' id='4' name="P4 Stock headline" show-title='false' w='40000' x='14000' y='6500' />
+<zone h='9000' id='5' name="M1 Flow headline" show-title='false' w='46000' x='54000' y='6500' />
+<zone h='25000' id='6' name="M2 Stock trend" show-title='true' w='50000' x='0' y='15500' />
+<zone h='25000' id='7' name="M3 Benchmark trend" show-title='true' w='50000' x='50000' y='15500' />
+<zone h='27500' id='8' name="M4 Slipping services" show-title='true' w='50000' x='0' y='40500' />
+<zone h='27500' id='9' name="M5 Seasonality" show-title='true' w='50000' x='50000' y='40500' />
+<zone h='28000' id='10' name="M6 Snow" show-title='true' w='100000' x='0' y='68000' />
+<zone h='4000' id='11' type-v2='text' w='100000' x='0' y='96000'><formatted-text><run fontcolor='#5B6B7A' fontsize='8'>Backlog to 2026-10-31, requests to 2026-11-17. Source: City of Calgary Open Data (311 Service Requests iahh-g8bj, communities surr-xmvs), ECCC daily climate CALGARY INTL A. Benchmark: each service's own 80th percentile time to close in 2022-2024. 'Closed' means closed in the system, not fixed.</run></formatted-text></zone>
       </zone>
     </zones>
   </dashboard>
   </dashboards>
   <windows source-height='30'>
-    <window class='dashboard' name="Priorities"><viewpoints /><active id='-1' /></window>
-    <window class='dashboard' name="Monthly situation"><viewpoints /><active id='-1' /></window>
+    <window class='dashboard' maximized='true' name="Priorities"><viewpoints><viewpoint name="P4 Stock headline"><zoom type='entire-view' /></viewpoint><viewpoint name="P2 Priority table"><zoom type='entire-view' /></viewpoint><viewpoint name="P5 Communities" /><viewpoint name="P3 Trend 3 months" /></viewpoints><active id='-1' /></window>
+    <window class='dashboard' maximized='true' name="Monthly situation"><viewpoints><viewpoint name="P4 Stock headline"><zoom type='entire-view' /></viewpoint><viewpoint name="M1 Flow headline"><zoom type='entire-view' /></viewpoint><viewpoint name="M2 Stock trend" /><viewpoint name="M3 Benchmark trend" /><viewpoint name="M4 Slipping services" /><viewpoint name="M5 Seasonality" /><viewpoint name="M6 Snow" /></viewpoints><active id='-1' /></window>
     <window class='worksheet' name="P2 Priority table"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>
     <window class='worksheet' name="P3 Trend 3 months"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>
     <window class='worksheet' name="P5 Communities"><cards><edge name='left'><strip size='160'><card type='pages' /><card type='filters' /><card type='marks' /></strip></edge><edge name='top'><strip size='2147483647'><card type='columns' /></strip><strip size='2147483647'><card type='rows' /></strip><strip size='31'><card type='title' /></strip></edge></cards></window>

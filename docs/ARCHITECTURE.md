@@ -153,7 +153,7 @@ Two rules follow from that table and apply in every tool that reads the marts:
 
 ## Tableau model
 
-The dashboard has two screens. **Priorities** (weekly): which communities and which request types to send crews to first. **Monthly situation**: an overview for a monthly review. `tableau/build_workbook.py` writes the data sources, parameters, calculated fields and one sheet per visual; the dashboard layout is done by hand in Tableau Public.
+The dashboard has two screens. **Priorities** (weekly): which communities and which request types to send crews to first. **Monthly situation**: an overview for a monthly review. `tableau/build_workbook.py` writes the data sources, parameters, calculated fields, one sheet per visual and both dashboard layouts (checked by screenshot in Tableau Public); the community map and its filter action are added by hand.
 
 | Source | File | Grain | Used by |
 |---|---|---|---|
