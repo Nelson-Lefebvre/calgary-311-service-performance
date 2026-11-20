@@ -70,6 +70,8 @@ flowchart LR
     i2 --> f1
     f1 --> f2[fct_category_monthly]
     i1 --> f3[fct_backlog_monthly]
+    i1 --> f6[fct_backlog_service_monthly]
+    s5 --> f6
     f1 --> f4[fct_daily_weather_requests]
     s4[stg_weather_daily] --> f4
     s3[stg_second_extract] --> f5[reconciliation_monthly]
@@ -139,6 +141,7 @@ The aggregate marts are built from `fct_service_request` (or `int_requests` for 
 | `fct_service_request` | one request | 2,471,994 | yes (counts) |
 | `fct_category_monthly` | service category x request type x month of request | 987 | counts yes; ratios and medians no, recompute from counts |
 | `fct_backlog_monthly` | month end x category x request type x community x age band | 377,576 | across categories and communities yes; across months **no** (a stock) |
+| `fct_backlog_service_monthly` | month end x request type x category x service name x community x age band, last 13 month ends, with the value 3 month ends earlier | 317,531 | same as `fct_backlog_monthly` |
 | `fct_daily_weather_requests` | day x service category | 28,014 | yes |
 | `reconciliation_monthly` | month (only 2024 is comparable) | 35 | n/a |
 | `int_category_benchmark` | service (or category fallback) | 463 | n/a |
@@ -150,7 +153,22 @@ Two rules follow from that table and apply in every tool that reads the marts:
 
 ## Tableau model
 
-`src/export.py` writes pre-aggregated files, so the Tableau workbook has one data source per question and a single relationship:
+The dashboard has two screens. **Priorities** (weekly): which communities and which request types to send crews to first. **Monthly situation**: an overview for a monthly review. `tableau/build_workbook.py` writes the data sources, parameters, calculated fields and one sheet per visual; the dashboard layout is done by hand in Tableau Public.
+
+| Source | File | Grain | Used by |
+|---|---|---|---|
+| Operations backlog | `backlog_service_community_monthly.csv` (+ `communities.geojson` on `comm_code` for the map) | month end x request type x category x service name x community x days open, last 13 month ends | Priorities: map, priority table, 3-month trend, communities |
+| Monthly KPIs | `monthly_kpis.csv` | request month, field requests | Both screens: headline figures; monthly trends |
+| Timeliness | `category_monthly.csv` | category x request type x month | Monthly: slipping services, seasonality |
+| Snow | `daily_snow_requests.csv` | day | Monthly: snow lag |
+
+The sources have different grains, so a normal Tableau filter acts on one source only. The shared filters are **parameters** (Category, Days open, Request type, Month end, Per 1,000 residents). Each source has a `Keep row` calculated field that compares its rows with the parameters, and every sheet keeps the rows where it is true. The priority sheets set it as a context filter so their Top 25 is computed after it. Monthly KPIs are city-wide field requests: they have no category column, and a Roads & Mobility share per category would mean nothing.
+
+Two dates on one screen are deliberate. A month-end backlog stock is final once the month is over (latest: October 2026). Flow figures (requests, share closed within benchmark) wait two months, because most requests of the last month are not closed yet (latest complete: September 2026). Each tile says which month it shows.
+
+Per 1,000 residents uses the 2019 municipal census, divides by the community's population once (not once per row), and is shown only by community.
+
+Earlier version of the model (one source per question):
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{
@@ -202,7 +220,7 @@ uv run python -m src.export
 uv run python tableau/build_workbook.py
 ```
 
-`tableau/build_workbook.py` writes `tableau/calgary_311.twb` and one Hyper extract per source in `data/processed/tableau/` (Tableau Public only saves workbooks built on extracts). Open the workbook in Tableau Public and use File > Save to Tableau Public.
+`tableau/build_workbook.py` writes `tableau/calgary_311.twb` (sources, parameters, calculated fields, sheets, empty dashboards) and one Hyper extract per source in `data/processed/extracts/` (Tableau Public only saves workbooks built on extracts). Open the workbook in Tableau Public and use File > Save to Tableau Public.
 
 Or trigger **Actions > Monthly refresh > Run workflow** on GitHub and download the Release. GitHub disables a scheduled workflow after 60 days without repository activity; re-enable it from the Actions tab.
 
