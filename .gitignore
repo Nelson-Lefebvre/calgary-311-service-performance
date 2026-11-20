@@ -30,3 +30,4 @@ logs/
 
 # Tableau temp and recovery files
 tableau/~*
+hyperd*.log
