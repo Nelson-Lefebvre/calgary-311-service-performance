@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_requests
+    columns:
+      - name: service_request_id
+        data_tests: [unique, not_null]
+      - name: requested_date
+        data_tests: [not_null]
+      - name: status_description
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["Open", "Closed", "Duplicate (Open)", "Duplicate (Closed)", "TO BE DELETED"]
+  - name: stg_second_extract
+    columns:
+      - name: service_request_id
+        data_tests: [unique, not_null]
+  - name: stg_weather_daily
+    columns:
+      - name: weather_date
+        data_tests: [unique, not_null]
+  - name: stg_community_population
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [comm_code, comm_name]
+    columns:
+      - name: comm_code
+        data_tests: [not_null]

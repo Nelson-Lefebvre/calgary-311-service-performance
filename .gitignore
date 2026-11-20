@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ruff_cache/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (keep folder structure, not the files)
+data/**
+!data/**/
+!data/**/.gitkeep
+
+# Secrets
+.env
+*.env
+
+# OS
+desktop.ini
+Thumbs.db
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+logs/
+*.log
+
+# Tableau temp and recovery files
+tableau/~*

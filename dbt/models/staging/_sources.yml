@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Dated snapshot written by src/ingest.py (paths relative to dbt/, run dbt from there)
+    tables:
+      - name: carryover
+        description: Pre-2022 requests still open on 2022-01-01 (closed later or never), for the backlog only
+        meta:
+          external_location: "read_parquet('../data/raw/snapshot={{ var('snapshot') }}/carryover.parquet')"
+      - name: requests
+        description: 311 Service Requests (iahh-g8bj), 2022 to snapshot, one parquet per month
+        meta:
+          external_location: "read_parquet('../data/raw/snapshot={{ var('snapshot') }}/requests/*.parquet')"
+      - name: second_extract
+        description: 311 Service Requests - Current Year (arf6-qysm), separate table, 2024+, capped at 1M rows
+        meta:
+          external_location: "read_parquet('../data/raw/snapshot={{ var('snapshot') }}/second_extract/*.parquet')"
+      - name: community_population
+        meta:
+          external_location: "read_parquet('../data/raw/snapshot={{ var('snapshot') }}/community_population.parquet')"
+      - name: weather_daily
+        description: ECCC daily climate, CALGARY INTL A (3031092)
+        meta:
+          external_location: "read_parquet('../data/raw/snapshot={{ var('snapshot') }}/weather_daily.parquet')"
