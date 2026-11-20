@@ -199,7 +199,10 @@ uv sync
 uv run python -m src.ingest --snapshot 2026-12-01
 cd dbt; uv run dbt build --profiles-dir . --vars "{snapshot: 2026-12-01}"; cd ..
 uv run python -m src.export
+uv run python tableau/build_workbook.py
 ```
+
+`tableau/build_workbook.py` writes `tableau/calgary_311.twb` and one Hyper extract per source in `data/processed/tableau/` (Tableau Public only saves workbooks built on extracts). Open the workbook in Tableau Public and use File > Save to Tableau Public.
 
 Or trigger **Actions > Monthly refresh > Run workflow** on GitHub and download the Release. GitHub disables a scheduled workflow after 60 days without repository activity; re-enable it from the Actions tab.
 

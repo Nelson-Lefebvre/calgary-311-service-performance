@@ -95,6 +95,7 @@ dependencies = [
 dev = [
     { name = "pytest" },
     { name = "ruff" },
+    { name = "tableauhyperapi" },
 ]
 
 [package.metadata]
@@ -116,6 +117,7 @@ requires-dist = [
 dev = [
     { name = "pytest" },
     { name = "ruff" },
+    { name = "tableauhyperapi", specifier = ">=0.0.26963" },
 ]
 
 [[package]]
@@ -132,7 +134,7 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -2225,6 +2227,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
+]
+
+[[package]]
+name = "tableauhyperapi"
+version = "0.0.26963"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cffi" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/0f/a60fdcfbf8f9745333d611c5eacf483ba513d5dccb51bfc1a50420820dfe/tableauhyperapi-0.0.26963-py3-none-manylinux2014_x86_64.whl", hash = "sha256:35376f598c6fdfa52fe25769778f756e2daec1c124ff8f471b5e098cb9cf7863", size = 90909073, upload-time = "2026-10-17T06:25:55.243Z" },
+    { url = "https://files.pythonhosted.org/packages/05/13/74972128ccb368be32db9bcf4369d51a519cffb8de7c5ab660594fa7affa/tableauhyperapi-0.0.26963-py3-none-win_amd64.whl", hash = "sha256:35e64279c619157561158128b3ef7e2c1107855be39b8fa0c1967371ad394ffd", size = 72770537, upload-time = "2026-10-17T06:26:14.667Z" },
 ]
 
 [[package]]
