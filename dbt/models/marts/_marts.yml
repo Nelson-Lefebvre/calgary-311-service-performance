@@ -29,5 +29,12 @@ models:
           arguments:
             columns: [month_end, service_category, request_type, comm_code, comm_name, age_band]
 
+  - name: fct_backlog_service_monthly
+    description: Open requests by service name and community, last 13 month ends, with the value three month ends earlier.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [month_end, request_type, service_category, service_name, comm_code, comm_name, age_band]
+
   - name: reconciliation_monthly
     description: iahh-g8bj monthly totals against the separate arf6-qysm extract.

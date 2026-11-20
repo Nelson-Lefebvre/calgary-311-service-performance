@@ -55,6 +55,11 @@ QUERIES = {
         left join snow as s on s.request_date = w.weather_date
         order by day
     """,
+    # Operational view: service name x community x age band, last 13 month ends, with 3-month trend.
+    "backlog_service_community_monthly": """
+        select * from fct_backlog_service_monthly
+        order by month_end, comm_code, service_name, age_band
+    """,
     "reconciliation_monthly": "select * from reconciliation_monthly",
 }
 
