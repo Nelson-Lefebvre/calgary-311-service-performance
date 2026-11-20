@@ -27,7 +27,9 @@ START = date(2022, 1, 1)
 
 REQUESTS_ID = "iahh-g8bj"  # 311 Service Requests (full history)
 SECOND_EXTRACT_ID = "arf6-qysm"  # separate table, 2024+, capped at 1M rows
-COMMUNITIES_ID = "ab7m-fwn6"  # community boundaries
+# Community District Boundaries. Not "ab7m-fwn6": that one is a map view with no columns,
+# and its GeoJSON export has null geometries.
+COMMUNITIES_ID = "surr-xmvs"
 POPULATION_ID = "jtpc-xgsh"  # community populations, last census 2019
 WEATHER_STATION = "3031092"  # CALGARY INTL A, daily since 2012-07-12
 
@@ -125,6 +127,18 @@ def ingest_carryover(out: Path) -> int:
     return df.height
 
 
+def ingest_communities(out: Path) -> int:
+    raw = get(f"{SODA}/{COMMUNITIES_ID}.geojson", {"$limit": 5000}).content
+    features = json.loads(raw)["features"]
+    # Trust boundary: an empty or geometry-less export would silently break the map.
+    if not features or any(
+        f["geometry"] is None or "comm_code" not in f["properties"] for f in features
+    ):
+        raise ValueError(f"{COMMUNITIES_ID}: boundaries export has missing geometry or comm_code")
+    (out / "communities.geojson").write_bytes(raw)
+    return len(features)
+
+
 def ingest_weather(start: date, end: date, out: Path) -> int:
     rows, offset = [], 0
     while True:
@@ -178,9 +192,7 @@ def main() -> None:
     )
 
     print("Community boundaries and population")
-    (out / "communities.geojson").write_bytes(
-        get(f"{SODA}/{COMMUNITIES_ID}.geojson", {"$limit": 5000}).content
-    )
+    manifest["communities"] = ingest_communities(out)
     pop = pl.read_csv(
         io.BytesIO(get(f"{SODA}/{POPULATION_ID}.csv", {"$limit": 50000}).content),
         infer_schema=False,

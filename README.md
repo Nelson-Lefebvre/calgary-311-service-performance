@@ -58,5 +58,5 @@ I built this project with Claude Code as a pair programmer.
 
 ## Data sources and licence
 
-- City of Calgary Open Data: 311 Service Requests (`iahh-g8bj`, `arf6-qysm`), Community Boundaries (`ab7m-fwn6`), Historical Community Populations (`jtpc-xgsh`). Licence and attribution: *to confirm from the [Open Calgary Terms of Use](https://data.calgary.ca/d/Open-Data-Terms/u45n-7awa)*.
+- City of Calgary Open Data: 311 Service Requests (`iahh-g8bj`, `arf6-qysm`), Community District Boundaries (`surr-xmvs`), Historical Community Populations (`jtpc-xgsh`). Licence and attribution: *to confirm from the [Open Calgary Terms of Use](https://data.calgary.ca/d/Open-Data-Terms/u45n-7awa)*.
 - Environment and Climate Change Canada, historical daily climate data, station CALGARY INTL A (climate ID 3031092).

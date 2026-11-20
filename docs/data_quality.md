@@ -30,6 +30,7 @@ Only requests from 2022-01-01 are analysed. Before 2022, the City used inconsist
 | 11 | **Dates have no time of day** | 100% | Time to close in whole days; 0 = closed the same day. |
 | 12 | **Weather gaps** at CALGARY INTL A (3031092) | 5 days | Left as missing; test `assert_weather_coverage` warns. |
 | 13 | **Ambiguous channel "Other"** | about 29% of all-time rows | Channel mix shown with a caveat. |
+| 14 | **Codes without a boundary**: `09K`, `ABT` and `N/A` have no polygon in `surr-xmvs` | 554 of 45,946 open field requests (1.2%, Oct 2026) | Kept in totals; absent from the map. |
 
 ## Reconciliation with a second extract
 
