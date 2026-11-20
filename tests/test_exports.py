@@ -54,3 +54,21 @@ def test_population_never_zero(con):
 
 def test_service_export_has_13_month_ends(con):
     assert one(con, f"select count(distinct month_end) from {csv('backlog_service_community_monthly.csv')}") == 13
+
+
+def test_kpis_latest_backlog_matches_readme(con):
+    r = con.execute(f"""select open_90_plus, round(roads_share_of_90_plus * 100)
+                        from {csv('monthly_kpis.csv')} where month = date '2026-10-01'""").fetchone()
+    assert r == (34661, 77)
+
+
+def test_kpis_first_year_has_null_prior_year(con):
+    assert one(con, f"select count(*) from {csv('monthly_kpis.csv')} where year(month) = 2022 and requests_ly is not null") == 0
+
+
+def test_kpis_two_latest_months_incomplete(con):
+    assert one(con, f"select list(is_complete order by month desc)[1:3] from {csv('monthly_kpis.csv')}") == [False, False, True]
+
+
+def test_kpis_one_row_per_month(con):
+    assert one(con, f"select count(*) - count(distinct month) from {csv('monthly_kpis.csv')}") == 0
