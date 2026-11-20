@@ -63,4 +63,4 @@ Secondary audience: 311 & Insights leadership, who want one overview page.
 |---|---|---|---|
 | Time to close vs benchmark by category | Weather association | 3-month volume forecast | Call-centre metrics |
 | Monthly backlog and its age | Duplicate rate by service | Per-capita rates with 2021 federal census | Point maps |
-| Community map of backlog | Channel mix (with the "Other" caveat) | Azure Functions version of the job | Pre-2022 trends |
+| Community map of backlog | Channel mix (with the "Other" caveat) | | Pre-2022 trends, cloud database (Azure SQL dropped: GitHub Actions + CSV instead) |

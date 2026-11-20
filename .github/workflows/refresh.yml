@@ -1,0 +1,35 @@
+# Monthly refresh: pull a fresh snapshot, rebuild the dbt model, publish the Tableau CSVs
+# as a GitHub Release. Free on a public repo. GitHub disables the cron after 60 days
+# without repo activity; re-enable it from the Actions tab.
+name: Monthly refresh
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - name: Snapshot date
+        run: echo "SNAPSHOT=$(date -u +%F)" >> "$GITHUB_ENV"
+      - run: uv run python -m src.ingest --snapshot "$SNAPSHOT"
+      - run: 'uv run dbt build --profiles-dir . --vars "{snapshot: $SNAPSHOT}"'
+        working-directory: dbt
+      - run: uv run python -m src.export
+      - name: Publish CSVs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "data-$SNAPSHOT" data/processed/exports/* \
+            --title "Data snapshot $SNAPSHOT" \
+            --notes "Tableau extracts built from the City of Calgary 311 snapshot of $SNAPSHOT." \
+            || gh release upload "data-$SNAPSHOT" data/processed/exports/* --clobber
