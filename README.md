@@ -7,7 +7,7 @@ Operations analytics on 2.49 million real City of Calgary 311 service requests (
 ![DuckDB](https://img.shields.io/badge/DuckDB-local-FFF000?logo=duckdb&logoColor=black)
 ![Tableau](https://img.shields.io/badge/Tableau-Public-E97627?logo=tableau&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-monthly%20refresh-2088FF?logo=githubactions&logoColor=white)
-![Tests](https://img.shields.io/badge/dbt%20build-19%20pass%20%C2%B7%201%20warn%20%C2%B7%200%20error-2E7D32)
+![Tests](https://img.shields.io/badge/dbt%20build-20%20pass%20%C2%B7%201%20warn%20%C2%B7%200%20error-2E7D32)
 
 | | | |
 |---|---|---|

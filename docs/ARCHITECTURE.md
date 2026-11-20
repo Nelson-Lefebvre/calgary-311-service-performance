@@ -208,7 +208,7 @@ Relating the other files on month or category would mix a month of request with 
 | Intermediate | A closed request has a closing date on or after its request date | Internal consistency of status and dates |
 | Marts | Every request day has a weather row (warns) | The weather join must not drop days silently |
 
-`dbt build` currently gives 19 passing tests and 1 warning: 5 request days have no weather row at the airport station, kept as nulls.
+`dbt build` currently gives 20 passing tests and 1 warning (plus 17 pytest checks on the exports and the workbook: `uv run pytest`): 5 request days have no weather row at the airport station, kept as nulls.
 
 ## Running it
 
